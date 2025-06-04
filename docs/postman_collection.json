@@ -1,0 +1,79 @@
+{
+    "info": {
+        "_postman_id": "okr-api-collection-$(date +%s)",
+        "name": "GitLab OKR API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Create Objective",
+            "request": {
+                "method": "POST",
+                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"obj_number\": 1,\n    \"title\": \"Meu Grande Objetivo Estratégico\",\n    \"description\": \"Detalhes sobre o que este objetivo pretende alcançar.\"\n}"
+                },
+                "url": { "raw": "{{base_url}}/objectives/", "host": ["{{base_url}}"], "path": ["objectives", ""] }
+            }, "response": []
+        },
+        {
+            "name": "List Objectives",
+            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/objectives/", "host": ["{{base_url}}"], "path": ["objectives", ""] } }, "response": []
+        },
+        {
+            "name": "Get Specific Objective",
+            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/objectives/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["objectives", "{{objective_iid_example}}"] } }, "response": []
+        },
+        {
+            "name": "Create Key Result",
+            "request": {
+                "method": "POST",
+                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100.0,\n    \"meta_realizada\": 0.0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"]\n}"
+                },
+                "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] }
+            }, "response": []
+        },
+        {
+            "name": "Get Specific KR",
+            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/{{kr_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "{{kr_iid_example}}"] } }, "response": []
+        },
+        {
+            "name": "List KRs for Objective",
+            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/objective/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "objective", "{{objective_iid_example}}"] } }, "response": []
+        },
+        {
+            "name": "List All KRs",
+            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] } }, "response": []
+        },
+        {
+            "name": "Update KR Description",
+            "request": {
+                "method": "PUT",
+                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "body": { "mode": "raw", "raw": "{\n    \"description\": \"Esta é a nova descrição completa do KR.\nContém múltiplas linhas e **Markdown**.\"\n}" },
+                "url": { "raw": "{{base_url}}/krs/{{kr_iid_example}}/description", "host": ["{{base_url}}"], "path": ["krs", "{{kr_iid_example}}", "description"] }
+            }, "response": []
+        },
+        {
+            "name": "Add Activities to KR",
+            "request": {
+                "method": "POST",
+                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"activities\": [\n        {\n            \"project_action_activity\": \"Desenvolver tutorial interativo\",\n            \"stakeholders\": \"Equipe de Produto, Equipe de UX\",\n            \"deadline_planned\": \"Q3/2024\",\n            \"deadline_achieved\": null,\n            \"progress_planned_percent\": 100.0,\n            \"progress_achieved_percent\": 25.0\n        }\n    ]\n}"
+                },
+                "url": { "raw": "{{base_url}}/activities/kr/{{kr_iid_example}}", "host": ["{{base_url}}"], "path": ["activities", "kr", "{{kr_iid_example}}"] }
+            }, "response": []
+        }
+    ],
+    "variable": [
+        { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+        { "key": "objective_iid_example", "value": "1", "type": "string" },
+        { "key": "kr_iid_example", "value": "1", "type": "string" }
+    ]
+}
