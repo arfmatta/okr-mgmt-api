@@ -15,9 +15,10 @@ Principais Funcionalidades:
 
 - Python 3.8+
 - pip (gerenciador de pacotes Python)
+- Docker (opcional, para execução em container)
 - Acesso a uma instância GitLab e um token de acesso com permissões de API.
 
-## 3. Setup do Ambiente
+## 3. Setup do Ambiente (Sem Docker)
 
 1.  **Clone o repositório:**
     ```bash
@@ -62,7 +63,7 @@ GITLAB_KR_LABELS="Resultado Chave,KR"
 
 *(Nota: A label "OKR::Resultado Chave" é usada internamente pelo serviço ao adicionar referências de KR na descrição do Objetivo pai. Certifique-se que esta label exista no seu projeto GitLab se desejar usar essa funcionalidade visualmente no GitLab).*
 
-## 5. Executando a Aplicação
+## 5. Executando a Aplicação (Sem Docker)
 
 Com o ambiente virtual ativado e o arquivo `.env` configurado:
 
@@ -74,17 +75,40 @@ A API estará disponível em `http://localhost:8000`.
 
 Você pode acessar a documentação interativa (Swagger UI) em `http://localhost:8000/docs` e a documentação alternativa (ReDoc) em `http://localhost:8000/redoc`.
 
-## 6. Executando os Testes
+## 6. Executando com Docker
 
-### 6.1. Testes Unitários
+Você também pode construir e executar a aplicação usando Docker. Certifique-se de ter o Docker instalado e rodando.
 
-Os testes unitários mockam dependências externas (como o `GitlabService`) e testam a lógica interna dos serviços.
+1.  **Construa a imagem Docker:**
+    A partir da raiz do projeto (onde o `Dockerfile` está localizado):
+    ```bash
+    docker build -t okr-api .
+    ```
+    Isso criará uma imagem chamada `okr-api`.
+
+2.  **Execute o container Docker:**
+    Para executar a imagem construída (certifique-se que o arquivo `.env` existe na raiz do projeto):
+    ```bash
+    docker run --env-file .env -p 8000:8000 okr-api
+    ```
+    Explicação dos parâmetros:
+    - `--env-file .env`: Passa as variáveis de ambiente do seu arquivo `.env` local para dentro do container.
+    - `-p 8000:8000`: Mapeia a porta 8000 do host para a porta 8000 do container (onde a aplicação FastAPI está rodando).
+    - `okr-api`: O nome da imagem Docker que você construiu.
+
+    A API estará então acessível em `http://localhost:8000` no seu navegador ou cliente API, e a documentação interativa em `http://localhost:8000/docs`.
+
+## 7. Executando os Testes
+
+### 7.1. Testes Unitários
+
+Os testes unitários mockam dependências externas (como o `GitlabService`) e testam a lógica interna dos serviços. Execute-os com o ambiente virtual ativado:
 
 ```bash
 python -m unittest discover tests/unit
 ```
 
-### 6.2. Testes de Integração
+### 7.2. Testes de Integração
 
 Os testes de integração fazem chamadas HTTP reais para a API rodando localmente, que por sua vez interage com uma instância **real** do GitLab.
 
@@ -92,17 +116,18 @@ Os testes de integração fazem chamadas HTTP reais para a API rodando localment
 - **Configuração:** Certifique-se que seu arquivo `.env` está configurado com credenciais válidas para um **projeto de teste** no GitLab. Os testes criarão issues reais.
 - **Projeto de Teste:** É altamente recomendável usar um projeto GitLab dedicado para testes para evitar poluir projetos de produção.
 
+Execute-os com o ambiente virtual ativado:
 ```bash
 python -m unittest discover tests/integration
 ```
 *(Nota: A execução bem-sucedida dos testes de integração no ambiente de desenvolvimento automatizado pode ser instável devido a timeouts ou falta de configuração do `.env` nesse ambiente específico).*
 
-## 7. Documentação da API (Detalhada)
+## 8. Documentação da API (Detalhada)
 
 - Consulte o arquivo [docs/api_requirements_diagram.md](docs/api_requirements_diagram.md) para uma visão geral dos requisitos, diagrama de componentes e um resumo dos endpoints.
 - Para a documentação completa e interativa dos endpoints, schemas de dados e modelos, acesse `/docs` ou `/redoc` quando a aplicação estiver rodando.
 
-## 8. Coleção do Postman
+## 9. Coleção do Postman
 
 Uma coleção do Postman para facilitar testes funcionais manuais está disponível em [docs/postman_collection.json](docs/postman_collection.json). Você pode importá-la no seu cliente Postman. A coleção inclui variáveis como `{{base_url}}` que você pode configurar no seu ambiente Postman.
 
