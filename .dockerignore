@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+
+# Python virtual environment
+venv
+*.venv
+.venv
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and editor specific files
+.vscode/
+.idea/
+*.project
+*.pydevproject
+*.sublime-workspace
+
+# Environment file - should not be copied into the image
+.env
+*.env.*
+
+# Test reports and coverage
+htmlcov/
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Docker files (if any are local and not needed in image, e.g. docker-compose.yml if only Dockerfile is for image)
+# Dockerfile # Usually Dockerfile itself is not ignored if context is .
+
+# OS specific files
+.DS_Store
+Thumbs.db
