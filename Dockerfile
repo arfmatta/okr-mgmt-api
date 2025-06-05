@@ -16,13 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # So, if you have app/main.py locally, it becomes /app/app/main.py in container
 COPY ./app ./app
 
+# Set PYTHONPATH to ensure modules in /app (like the 'app' package itself) are found
+ENV PYTHONPATH=/app
+
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
-
-# Define environment variable to tell uvicorn where to find the app
-# (Not strictly necessary if CMD specifies app.main:app, but can be good practice)
-# ENV MODULE_NAME="app.main"
-# ENV VARIABLE_NAME="app"
 
 # Run app.main:app when the container launches
 # Use 0.0.0.0 to make it accessible from outside the container
