@@ -6,13 +6,54 @@
     },
     "item": [
         {
+            "name": "Get Access Token",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/x-www-form-urlencoded"
+                    }
+                ],
+                "body": {
+                    "mode": "urlencoded",
+                    "urlencoded": [
+                        {
+                            "key": "username",
+                            "value": "testuser",
+                            "type": "text"
+                        },
+                        {
+                            "key": "password",
+                            "value": "testpass",
+                            "type": "text"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/token",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "token"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
             "name": "Create Objective",
             "request": {
                 "method": "POST",
-                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"obj_number\": 1,\n    \"title\": \"Meu Grande Objetivo Estratégico\",\n    \"description\": \"Detalhes sobre o que este objetivo pretende alcançar.\"\n}"
+                    "raw": "{\n    \"obj_number\": 1,\n    \"title\": \"Meu Grande Objetivo Estratégico\",\n    \"description\": \"Detalhes sobre o que este objetivo pretende alcançar.\",\n    \"team_label\": \"EquipeExemplo\",\n    \"product_label\": \"ProdutoExemplo\"\n}"
                 },
                 "url": { "raw": "{{base_url}}/objectives/", "host": ["{{base_url}}"], "path": ["objectives", ""] }
             }, "response": []
@@ -32,7 +73,7 @@
                 "header": [ { "key": "Content-Type", "value": "application/json" } ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100.0,\n    \"meta_realizada\": 0.0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"]\n}"
+                    "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100.0,\n    \"meta_realizada\": 0.0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"],\n    \"team_label\": \"EquipeKR\",\n    \"product_label\": \"ProdutoKR\"\n}"
                 },
                 "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] }
             }, "response": []
@@ -92,6 +133,7 @@
     "variable": [
         { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
         { "key": "objective_iid_example", "value": "1", "type": "string" },
-        { "key": "kr_iid_example", "value": "1", "type": "string" }
+        { "key": "kr_iid_example", "value": "1", "type": "string" },
+        { "key": "access_token", "value": "", "type": "string"}
     ]
 }

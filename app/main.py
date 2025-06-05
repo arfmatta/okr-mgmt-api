@@ -1,7 +1,10 @@
 from fastapi import FastAPI
-from app.routers import objectives, krs, activities # Added kr_description_router
+from app.routers import objectives, krs, activities, auth # Added kr_description_router
 
 app = FastAPI(title="Objectives and Key Results API")
+
+# Include Auth Router
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 # Include Objectives Router
 app.include_router(objectives.router, prefix="/objectives", tags=["Objectives"])

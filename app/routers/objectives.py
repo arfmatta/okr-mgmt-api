@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List # Ensure List is imported
 from app.services.objective_service import objective_service, ObjectiveService
-from app.models import ObjectiveCreateRequest, ObjectiveResponse
+from app.models import ObjectiveCreateRequest, ObjectiveResponse, User # New import for type hint
+from app.security import get_current_active_user # New import
 
 async def get_current_objective_service() -> ObjectiveService:
     return objective_service
@@ -15,8 +16,11 @@ router = APIRouter(
 @router.post("/", response_model=ObjectiveResponse, status_code=201)
 async def create_new_objective(
     objective_data: ObjectiveCreateRequest,
-    service: ObjectiveService = Depends(get_current_objective_service)
+    service: ObjectiveService = Depends(get_current_objective_service),
+    current_user: User = Depends(get_current_active_user) # Added dependency
 ):
+    # The current_user object can be used here if needed, e.g., for logging or ownership
+    # For now, its presence means the endpoint is protected.
     try:
         created_objective = service.create_objective(objective_data)
         return created_objective

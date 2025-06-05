@@ -154,6 +154,60 @@ class TestAPIIntegration(unittest.TestCase):
 
         print(f"Activities added to KR IID: {target_kr_iid}")
 
+    def test_04_access_protected_route_no_token(self):
+        print("Running test_04_access_protected_route_no_token")
+        # Attempt to access POST /objectives/ which is now protected
+        payload = { # Using dict directly for simplicity, matches ObjectiveCreateRequest structure
+            "obj_number": 101,
+            "title": "Test Objective No Token",
+            "description": "This should fail.",
+            "team_label": "TeamAuthTest",
+            "product_label": "ProductAuthTest"
+        }
+        response = self.client.post("/objectives/", json=payload)
+        # Expect 401 Unauthorized because OAuth2PasswordBearer by default returns 401
+        # if no token is present, before our custom validation logic is even hit.
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertIn("Not authenticated", response.json().get("detail"),
+                      "Detail message might vary based on FastAPI/Starlette defaults for missing token")
+
+    def test_05_get_token_and_access_protected_route(self):
+        print("Running test_05_get_token_and_access_protected_route")
+
+        # 1. Obtain token from /auth/token
+        token_response = self.client.post(
+            "/auth/token",
+            data={"username": "testuser", "password": "testpass"} # Form data
+        )
+        self.assertEqual(token_response.status_code, 200, token_response.text)
+        token_data = token_response.json()
+        self.assertIn("access_token", token_data)
+        self.assertEqual(token_data["token_type"], "bearer")
+        access_token = token_data["access_token"]
+
+        # 2. Access protected route (POST /objectives/) with the token
+        headers = {"Authorization": f"Bearer {access_token}"}
+        objective_payload = {
+            "obj_number": 102,
+            "title": "Test Objective With Token",
+            "description": "This objective creation should succeed.",
+            "team_label": "TeamAuthTest",
+            "product_label": "ProductAuthTest"
+        }
+        response = self.client.post("/objectives/", json=objective_payload, headers=headers)
+
+        self.assertEqual(response.status_code, 201, response.text)
+        created_objective_data = response.json()
+        self.assertEqual(created_objective_data.get("title"), f"OBJ{objective_payload['obj_number']}: {objective_payload['title'].upper()}")
+
+        # Optionally, store this IID if other tests depend on an objective created by an authenticated user
+        if created_objective_data.get("id"):
+            # Ensure this list is part of the class setup if used across methods like this
+            if not hasattr(self.__class__, 'created_objective_iids_authed'):
+                 self.__class__.created_objective_iids_authed = []
+            self.__class__.created_objective_iids_authed.append(created_objective_data["id"])
+            print(f"Authenticated objective created with IID: {created_objective_data['id']}")
+
 if __name__ == '__main__':
     import sys
     # Ensures 'app' module can be found when running script directly from tests/integration/

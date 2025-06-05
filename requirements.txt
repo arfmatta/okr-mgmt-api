@@ -3,3 +3,5 @@ uvicorn[standard]
 python-gitlab
 pydantic-settings
 httpx
+python-jose[cryptography]
+passlib[bcrypt]

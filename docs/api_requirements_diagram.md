@@ -46,10 +46,17 @@ Esta API FastAPI facilita a criação e o gerenciamento de Objetivos e Key Resul
 
 A API expõe os seguintes endpoints principais. Para detalhes completos sobre os schemas de request/response, consulte a documentação OpenAPI gerada automaticamente pela FastAPI em `/docs` ou `/redoc` na raiz da aplicação.
 
+### 3.0. Autenticação (`/auth`)
+
+*   **`POST /auth/token`**
+    *   **Descrição:** Obtém um token JWT para autenticação. Enviar `username` e `password` como form data (`application/x-www-form-urlencoded`). Para fins de teste, usar `username: testuser` e `password: testpass`.
+    *   **Request Body (Form Data):** `username` (string), `password` (string).
+    *   **Response Body:** `Token` (contém `access_token`: string, `token_type`: string).
+
 ### 3.1. Objetivos (`/objectives`)
 
 *   **`POST /objectives/`**
-    *   **Descrição:** Cria um novo Objetivo.
+    *   **Descrição:** Cria um novo Objetivo. **Requer autenticação JWT.**
     *   **Request Body:** `ObjectiveCreateRequest` (contém `obj_number`, `title`, `description`).
     *   **Response Body:** `ObjectiveResponse` (contém dados do issue criado, incluindo `id`, `title` formatado, `description` formatada, `web_url`).
 *   **`GET /objectives/`**
@@ -100,6 +107,9 @@ Referência aos modelos definidos em `app/models.py`.
 *   `ActivityCreateRequest`: Para adicionar uma lista de Atividades a um KR.
 *   `DescriptionResponse`: Resposta simples contendo uma string de descrição.
 *   `KRUpdateRequest`: Para atualizar campos de um Key Result (descrição, metas, responsáveis).
+*   `Token`: Representação do token de acesso JWT.
+*   `TokenData`: Representação dos dados (claims) contidos em um token JWT.
+*   `User`: Representação de um usuário autenticado (e.g., `username` extraído do token).
 
 Para a estrutura detalhada de cada modelo, consulte a documentação OpenAPI (`/docs`).
 
@@ -113,5 +123,8 @@ As seguintes variáveis de ambiente (ou arquivo `.env`) são usadas para configu
 *   `GITLAB_OBJECTIVE_LABELS`: Nomes das labels para Objetivos (e.g., "Objetivo Estratégico,OKR").
 *   `GITLAB_KR_LABELS`: Nomes das labels para Key Results (e.g., "Resultado Chave,OKR").
 *   *(Implicitamente, a label "OKR::Resultado Chave" é usada ao referenciar KRs na descrição do Objetivo).*
+*   `SECRET_KEY`: Chave secreta para assinar os tokens JWT.
+*   `ALGORITHM`: Algoritmo usado para assinar os tokens JWT (e.g., "HS256").
+*   `ACCESS_TOKEN_EXPIRE_MINUTES`: Tempo de validade do token de acesso em minutos.
 
 EOF

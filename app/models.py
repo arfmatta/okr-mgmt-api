@@ -59,6 +59,11 @@ class ActivityCreateRequest(BaseModel):
 class DescriptionResponse(BaseModel):
     description: str
 
+# --- User Model ---
+class User(BaseModel):
+    username: str # Or user_id: str, or sub: str, depending on what's in the token
+    # Add other fields as needed later, e.g., email, full_name, disabled, roles etc.
+
 # --- GitlabConfig Model (Originally planned here, can also be in config.py if only used there) ---
 # For now, keeping it here as it defines a data structure.
 # If it were BaseSettings, it would definitely be in config.py.
