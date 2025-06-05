@@ -1,6 +1,7 @@
 import re
 import gitlab # For gitlab client and exceptions
 from typing import List, Optional
+from app.services.gitlab_service import gitlab_service # Correct import
 from app.models import KRCreateRequest, KRResponse, KRUpdateRequest
 from app.config import settings
 from gitlab.v4.objects import ProjectIssue
@@ -8,7 +9,7 @@ from gitlab.v4.objects import ProjectIssue
 
 class KRService:
     def __init__(self):
-        self.gitlab_service = gitlab_service
+        self.gitlab_service = gitlab_service # Correct assignment
         self.kr_labels: List[str] = settings.gitlab_kr_labels if settings.gitlab_kr_labels else []
         self.kr_reference_label: str = "OKR::Resultado Chave"
 
