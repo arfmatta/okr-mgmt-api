@@ -46,44 +46,51 @@ Esta API FastAPI facilita a criação e o gerenciamento de Objetivos e Key Resul
 
 A API expõe os seguintes endpoints principais. Para detalhes completos sobre os schemas de request/response, consulte a documentação OpenAPI gerada automaticamente pela FastAPI em `/docs` ou `/redoc` na raiz da aplicação.
 
+### 3.0. Autenticação (`/auth`)
+
+*   **`POST /auth/token`**
+    *   **Descrição:** Obtém um token JWT para autenticação. Enviar `username` e `password` como form data (`application/x-www-form-urlencoded`). Para fins de teste, usar `username: testuser` e `password: testpass`.
+    *   **Request Body (Form Data):** `username` (string), `password` (string).
+    *   **Response Body:** `Token` (contém `access_token`: string, `token_type`: string).
+
 ### 3.1. Objetivos (`/objectives`)
 
 *   **`POST /objectives/`**
-    *   **Descrição:** Cria um novo Objetivo.
+    *   **Descrição:** Cria um novo Objetivo. **Requer autenticação JWT.**
     *   **Request Body:** `ObjectiveCreateRequest` (contém `obj_number`, `title`, `description`).
     *   **Response Body:** `ObjectiveResponse` (contém dados do issue criado, incluindo `id`, `title` formatado, `description` formatada, `web_url`).
 *   **`GET /objectives/`**
-    *   **Descrição:** Lista todos os Objetivos (issues com as labels de objetivo configuradas).
+    *   **Descrição:** **Requer autenticação JWT.** Lista todos os Objetivos (issues com as labels de objetivo configuradas).
     *   **Response Body:** `List[ObjectiveResponse]`.
 *   **`GET /objectives/{objective_iid}`**
-    *   **Descrição:** Busca um Objetivo específico pelo seu IID (Internal ID do issue no GitLab).
+    *   **Descrição:** **Requer autenticação JWT.** Busca um Objetivo específico pelo seu IID (Internal ID do issue no GitLab).
     *   **Response Body:** `ObjectiveResponse`.
 
 ### 3.2. Key Results (`/krs`)
 
 *   **`POST /krs/`**
-    *   **Descrição:** Cria um novo Key Result. Requer o `objective_iid` do objetivo pai.
+    *   **Descrição:** **Requer autenticação JWT.** Cria um novo Key Result. Requer o `objective_iid` do objetivo pai.
         *Observação: A funcionalidade completa para criação de KRs, incluindo formatação detalhada e atualização da descrição do objetivo pai, foi implementada no `KRService` (conforme Subtask 13). No entanto, a verificação completa através de testes de execução tem sido dificultada por limitações no ambiente de desenvolvimento (timeouts), então a confiança na plena operacionalidade em todos os cenários depende de testes futuros em um ambiente de execução estável.*
     *   **Request Body:** `KRCreateRequest` (contém `objective_iid`, `kr_number`, `title`, `description`, `meta_prevista`, `meta_realizada`, `responsaveis`).
     *   **Response Body:** `KRResponse`.
 *   **`GET /krs/{kr_iid}`**
-    *   **Descrição:** Busca um Key Result específico pelo seu IID.
+    *   **Descrição:** **Requer autenticação JWT.** Busca um Key Result específico pelo seu IID.
     *   **Response Body:** `KRResponse`.
 *   **`GET /krs/objective/{objective_iid}`**
-    *   **Descrição:** Lista todos os Key Results associados a um Objetivo específico.
+    *   **Descrição:** **Requer autenticação JWT.** Lista todos os Key Results associados a um Objetivo específico.
     *   **Response Body:** `List[KRResponse]`.
 *   **`GET /krs/`**
-    *   **Descrição:** Lista todos os Key Results (issues com as labels de KR configuradas).
+    *   **Descrição:** **Requer autenticação JWT.** Lista todos os Key Results (issues com as labels de KR configuradas).
     *   **Response Body:** `List[KRResponse]`.
-*   **`PUT /krs/{kr_iid}/description`** (Endpoint do `kr_description_router.py`)
-    *   **Descrição:** Atualiza a descrição completa de um Key Result.
-    *   **Request Body:** `KRDescriptionUpdateRequest` (contém `description`).
+*   **`PUT /krs/{kr_iid}`**
+    *   **Descrição:** **Requer autenticação JWT.** Atualiza um Key Result existente. Permite alterar a descrição textual, meta prevista, meta realizada e a lista de responsáveis. Campos não fornecidos na requisição não serão alterados (manterão seus valores atuais), exceto a descrição que se tornará "(Descrição não fornecida)" se uma string vazia for passada.
+    *   **Request Body:** `KRUpdateRequest` (contém `description: Optional[str]`, `meta_prevista: Optional[float]`, `meta_realizada: Optional[float]`, `responsaveis: Optional[List[str]]`).
     *   **Response Body:** `KRResponse`.
 
 ### 3.3. Atividades (`/activities`)
 
 *   **`POST /activities/kr/{kr_iid}`**
-    *   **Descrição:** Adiciona uma ou mais atividades à descrição de um Key Result existente. As atividades são adicionadas como novas linhas em uma tabela Markdown na descrição do KR.
+    *   **Descrição:** **Requer autenticação JWT.** Adiciona uma ou mais atividades à descrição de um Key Result existente. As atividades são adicionadas como novas linhas em uma tabela Markdown na descrição do KR.
     *   **Request Body:** `ActivityCreateRequest` (contém uma lista de objetos `Activity`).
     *   **Response Body:** `DescriptionResponse` (contém a string completa da descrição do KR atualizada).
     *   *(Observação: O endpoint para buscar/listar atividades parseadas da descrição foi desativado temporariamente devido à complexidade de parsear tabelas Markdown de forma robusta no backend.)*
@@ -99,7 +106,10 @@ Referência aos modelos definidos em `app/models.py`.
 *   `Activity`: Representação de uma Atividade.
 *   `ActivityCreateRequest`: Para adicionar uma lista de Atividades a um KR.
 *   `DescriptionResponse`: Resposta simples contendo uma string de descrição.
-*   `KRDescriptionUpdateRequest`: Para atualizar a descrição de um KR.
+*   `KRUpdateRequest`: Para atualizar campos de um Key Result (descrição, metas, responsáveis).
+*   `Token`: Representação do token de acesso JWT.
+*   `TokenData`: Representação dos dados (claims) contidos em um token JWT.
+*   `User`: Representação de um usuário autenticado (e.g., `username` extraído do token).
 
 Para a estrutura detalhada de cada modelo, consulte a documentação OpenAPI (`/docs`).
 
@@ -113,5 +123,8 @@ As seguintes variáveis de ambiente (ou arquivo `.env`) são usadas para configu
 *   `GITLAB_OBJECTIVE_LABELS`: Nomes das labels para Objetivos (e.g., "Objetivo Estratégico,OKR").
 *   `GITLAB_KR_LABELS`: Nomes das labels para Key Results (e.g., "Resultado Chave,OKR").
 *   *(Implicitamente, a label "OKR::Resultado Chave" é usada ao referenciar KRs na descrição do Objetivo).*
+*   `SECRET_KEY`: Chave secreta para assinar os tokens JWT.
+*   `ALGORITHM`: Algoritmo usado para assinar os tokens JWT (e.g., "HS256").
+*   `ACCESS_TOKEN_EXPIRE_MINUTES`: Tempo de validade do token de acesso em minutos.
 
 EOF

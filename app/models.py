@@ -37,6 +37,12 @@ class KRResponse(BaseModel):
 class KRDescriptionUpdateRequest(BaseModel):
     description: str
 
+class KRUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    meta_prevista: Optional[float] = Field(default=None, ge=0, le=100) # Percentage
+    meta_realizada: Optional[float] = Field(default=None, ge=0, le=100) # Percentage
+    responsaveis: Optional[List[str]] = None
+
 # --- Activity Models ---
 class Activity(BaseModel):
     project_action_activity: str
@@ -52,6 +58,11 @@ class ActivityCreateRequest(BaseModel):
 # --- General Utility Models ---
 class DescriptionResponse(BaseModel):
     description: str
+
+# --- User Model ---
+class User(BaseModel):
+    username: str # Or user_id: str, or sub: str, depending on what's in the token
+    # Add other fields as needed later, e.g., email, full_name, disabled, roles etc.
 
 # --- GitlabConfig Model (Originally planned here, can also be in config.py if only used there) ---
 # For now, keeping it here as it defines a data structure.

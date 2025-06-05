@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     gitlab_objective_labels: List[str] = Field(default_factory=list, exclude=True) # exclude=True para não esperar no .env
     gitlab_kr_labels: List[str] = Field(default_factory=list, exclude=True)      # exclude=True
 
+    # JWT Settings
+    SECRET_KEY: str = "a_very_secret_key_that_should_be_changed_in_production" # Replace with a generated key in real scenarios
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding='utf-8',

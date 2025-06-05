@@ -24,11 +24,21 @@ class TestAPIIntegration(unittest.TestCase):
         cls.client = TestClient(app)
         cls.created_objective_iids = []
         cls.created_kr_iids = []
+        cls.access_token = None
+        cls.auth_headers = {}
 
         if not all([settings.gitlab_api_url, settings.gitlab_access_token, settings.gitlab_project_id,
                     settings.gitlab_objective_labels, settings.gitlab_kr_labels]):
             raise EnvironmentError("GitLab API settings (URL, Token, Project ID, Labels) not configured. "
                                    "Ensure .env file is present and correctly set up for integration testing.")
+
+        # Acquire JWT token for the test class
+        token_response = cls.client.post("/auth/token", data={"username": "testuser", "password": "testpass"})
+        if token_response.status_code != 200:
+            raise Exception(f"Failed to acquire test token in setUpClass: {token_response.text}")
+        cls.access_token = token_response.json()["access_token"]
+        cls.auth_headers = {"Authorization": f"Bearer {cls.access_token}"}
+        print("Access token acquired for integration tests.")
 
     @classmethod
     def tearDownClass(cls):
@@ -47,7 +57,7 @@ class TestAPIIntegration(unittest.TestCase):
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"
         )
-        response = self.client.post("/objectives/", json=payload.model_dump())
+        response = self.client.post("/objectives/", json=payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 201, response.text)
         data = response.json()
@@ -94,7 +104,7 @@ class TestAPIIntegration(unittest.TestCase):
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"
         )
-        response = self.client.post("/krs/", json=payload.model_dump())
+        response = self.client.post("/krs/", json=payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 201, response.text)
         data = response.json()
@@ -136,7 +146,7 @@ class TestAPIIntegration(unittest.TestCase):
         activities_payload = ActivityCreateRequest(activities=[activity_detail])
 
         # Endpoint is POST /activities/kr/{kr_iid} as per app/routers/activities.py
-        response = self.client.post(f"/activities/kr/{target_kr_iid}", json=activities_payload.model_dump())
+        response = self.client.post(f"/activities/kr/{target_kr_iid}", json=activities_payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 200, response.text) # Returns 200 OK with DescriptionResponse
         data = response.json()
@@ -153,6 +163,49 @@ class TestAPIIntegration(unittest.TestCase):
         self.assertIn(f"| {activity_detail.progress_achieved_percent}% |", data["description"])
 
         print(f"Activities added to KR IID: {target_kr_iid}")
+
+    def test_04_access_protected_route_no_token(self):
+        print("Running test_04_access_protected_route_no_token")
+        # Attempt to access POST /objectives/ which is now protected
+        payload = { # Using dict directly for simplicity, matches ObjectiveCreateRequest structure
+            "obj_number": 101,
+            "title": "Test Objective No Token",
+            "description": "This should fail.",
+            "team_label": "TeamAuthTest",
+            "product_label": "ProductAuthTest"
+        }
+        response = self.client.post("/objectives/", json=payload)
+        # Expect 401 Unauthorized because OAuth2PasswordBearer by default returns 401
+        # if no token is present, before our custom validation logic is even hit.
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertIn("Not authenticated", response.json().get("detail"),
+                      "Detail message might vary based on FastAPI/Starlette defaults for missing token")
+
+    # test_05_get_token_and_access_protected_route is removed as its functionality
+    # is now covered by setUpClass token acquisition and test_01_create_objective.
+
+    def test_06_access_protected_get_routes(self):
+        print("Running test_06_access_protected_get_routes")
+
+        # Test GET /objectives/ without token
+        response_no_token_obj_list = self.client.get("/objectives/")
+        self.assertEqual(response_no_token_obj_list.status_code, 401)
+        self.assertIn("Not authenticated", response_no_token_obj_list.json().get("detail"))
+
+        # Test GET /objectives/ with token
+        response_with_token_obj_list = self.client.get("/objectives/", headers=self.__class__.auth_headers)
+        self.assertEqual(response_with_token_obj_list.status_code, 200)
+        self.assertIsInstance(response_with_token_obj_list.json(), list) # Expect a list of objectives
+
+        # Test GET /krs/ without token
+        response_no_token_kr_list = self.client.get("/krs/")
+        self.assertEqual(response_no_token_kr_list.status_code, 401)
+        self.assertIn("Not authenticated", response_no_token_kr_list.json().get("detail"))
+
+        # Test GET /krs/ with token
+        response_with_token_kr_list = self.client.get("/krs/", headers=self.__class__.auth_headers)
+        self.assertEqual(response_with_token_kr_list.status_code, 200)
+        self.assertIsInstance(response_with_token_kr_list.json(), list) # Expect a list of KRs
 
 if __name__ == '__main__':
     import sys

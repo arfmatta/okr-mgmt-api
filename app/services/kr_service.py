@@ -1,14 +1,15 @@
 import re
-from typing import List, Optional # Ensure List and Optional are imported
-from app.services import gitlab_service
-from app.models import KRCreateRequest, KRResponse
+import gitlab # For gitlab client and exceptions
+from typing import List, Optional
+from app.services.gitlab_service import gitlab_service # Correct import
+from app.models import KRCreateRequest, KRResponse, KRUpdateRequest
 from app.config import settings
 from gitlab.v4.objects import ProjectIssue
-import gitlab # For gitlab.exceptions
+# For gitlab.exceptions -> already imported with `import gitlab`
 
 class KRService:
     def __init__(self):
-        self.gitlab_service = gitlab_service
+        self.gitlab_service = gitlab_service # Correct assignment
         self.kr_labels: List[str] = settings.gitlab_kr_labels if settings.gitlab_kr_labels else []
         self.kr_reference_label: str = "OKR::Resultado Chave"
 
@@ -100,6 +101,88 @@ class KRService:
             print(f"Warning: Failed to update parent objective {kr_data.objective_iid} with KR {created_kr_issue.iid} reference. Error: {e_update_obj}")
 
         return self._map_issue_to_kr_response(created_kr_issue, kr_data.objective_iid)
+
+    # Method to be placed inside KRService class:
+    def update_kr(self, kr_iid: int, kr_data: KRUpdateRequest) -> KRResponse:
+        try:
+            issue = self.gitlab_service.get_issue(kr_iid)
+        except gitlab.exceptions.GitlabGetError:
+            raise ValueError(f"KR with IID {kr_iid} not found.")
+
+        current_description = issue.description or ""
+
+        # --- Determine new values, falling back to current if not provided ---
+
+        # 1. Quoted Description
+        current_quoted_desc_match = re.search(r"### Descrição\s*((?:> .*(?:\n|$))+)", current_description, re.MULTILINE)
+        current_quoted_desc_content = ""
+        if current_quoted_desc_match:
+            lines = current_quoted_desc_match.group(1).strip().split('\n') # Use '\n' for split if dealing with literal
+            current_quoted_desc_content = "\n".join([line[2:] if line.startswith("> ") else line for line in lines]) # Use '\n' for join
+
+        final_description_content = kr_data.description if kr_data.description is not None else current_quoted_desc_content
+
+        if final_description_content.strip():
+            final_quoted_description_block = "\n".join([f"> {line}" for line in final_description_content.splitlines()]) # splitlines handles
+
+        else:
+            final_quoted_description_block = "> (Descrição não fornecida)"
+
+        # 2. Meta Prevista
+        meta_prevista_match = re.search(r"\*\*Meta prevista\*\*: ([\d\.]+)\s*%", current_description)
+        current_meta_prevista = float(meta_prevista_match.group(1)) if meta_prevista_match else 0.0
+        final_meta_prevista = kr_data.meta_prevista if kr_data.meta_prevista is not None else current_meta_prevista
+
+        # 3. Meta Realizada
+        meta_realizada_match = re.search(r"\*\*Meta realizada\*\*: ([\d\.]+)\s*%", current_description)
+        current_meta_realizada = float(meta_realizada_match.group(1)) if meta_realizada_match else 0.0
+        final_meta_realizada = kr_data.meta_realizada if kr_data.meta_realizada is not None else current_meta_realizada
+
+        # 4. Responsáveis
+        responsaveis_match = re.search(r"\*\*Responsável\(eis\)\*\*: ([^\n]+)", current_description) # Matches till newline
+        current_responsaveis_str = responsaveis_match.group(1).strip() if responsaveis_match else "N/A"
+
+        if kr_data.responsaveis is not None:
+            final_responsaveis_str = ", ".join(kr_data.responsaveis) if kr_data.responsaveis else "N/A"
+        else:
+            final_responsaveis_str = current_responsaveis_str
+
+        # --- Preserve Activities Table ---
+        activities_table_header_default = "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |"
+        activities_table_separator_default = "|---------------------------|----------------------|----------------|-----------------|------------|-------------|"
+
+        activities_table_str = ""
+
+        header_search_match = re.search(re.escape(activities_table_header_default), current_description, re.IGNORECASE)
+        if header_search_match:
+            table_start_index = header_search_match.start()
+            activities_table_str = current_description[table_start_index:]
+            activities_table_str = activities_table_str.replace('\r\n', '\n') # Normalize newlines
+        else:
+            activities_table_str = f"{activities_table_header_default}\n{activities_table_separator_default}"
+
+        # --- Reconstruct Description ---
+        description_parts = [
+            "### Descrição",
+            "",
+            final_quoted_description_block,
+            "",
+            f"**Meta prevista**: {final_meta_prevista}%  ",
+            f"**Meta realizada**: {final_meta_realizada}%  ",
+            f"**Responsável(eis)**: {final_responsaveis_str}  ",
+            "",
+            activities_table_str.strip()
+        ]
+
+        new_full_description = "\n".join(description_parts) # Use '\n' for join
+        new_full_description = re.sub(r'\n{3,}', '\n\n', new_full_description).strip() # Use '\n'
+
+        updated_issue = self.gitlab_service.update_issue(
+            issue_iid=kr_iid, description=new_full_description
+        )
+
+        objective_iid_for_response = None
+        return self._map_issue_to_kr_response(updated_issue, objective_iid_for_response)
 
     def get_kr(self, kr_iid: int) -> Optional[KRResponse]:
         try:
