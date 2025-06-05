@@ -77,7 +77,8 @@ class KRService:
 
         try:
             parent_objective_issue = self.gitlab_service.get_issue(kr_data.objective_iid)
-            kr_reference_line = f"- [ ] **{kr_title}** ~\"{self.kr_reference_label}\""
+            kr_title = f"**{objective_prefix} - KR{kr_data.kr_number}**: {kr_data.title}"
+            kr_reference_line = f"- [ ] {kr_title} ~\"{self.kr_reference_label}\""
 
             new_objective_description = parent_objective_issue.description or ""
             results_chave_heading = "### Resultados Chave"
