@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List # Ensure List is imported
-from app.services.kr_service import kr_service, KRService
-from app.models import KRCreateRequest, KRResponse
+from typing import List
+from app.services.kr_service import kr_service, KRService # KRService for type hint
+from app.models import KRCreateRequest, KRResponse, KRUpdateRequest # KRUpdateRequest is new here
 
 async def get_current_kr_service() -> KRService:
     return kr_service
@@ -39,6 +39,23 @@ async def get_specific_kr(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve KR: {str(e)}")
+
+@router.put("/{kr_iid}", response_model=KRResponse)
+async def update_existing_kr(
+    kr_iid: int,
+    kr_data: KRUpdateRequest, # Use the new model for request body
+    service: KRService = Depends(get_current_kr_service)
+):
+    try:
+        updated_kr = service.update_kr(kr_iid=kr_iid, kr_data=kr_data)
+        if not updated_kr: # Should not happen if update_kr raises ValueError for not found
+            raise HTTPException(status_code=404, detail="KR not found after update attempt")
+        return updated_kr
+    except ValueError as ve: # Catch ValueError raised by service for not found KR
+        raise HTTPException(status_code=404, detail=str(ve)) # Return 404 for not found
+    except Exception as e:
+        # Log the exception e here for debugging
+        raise HTTPException(status_code=500, detail=f"Failed to update KR: {str(e)}")
 
 @router.get("/objective/{objective_iid}", response_model=List[KRResponse])
 async def list_krs_for_objective(

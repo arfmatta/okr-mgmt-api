@@ -75,9 +75,9 @@ A API expõe os seguintes endpoints principais. Para detalhes completos sobre os
 *   **`GET /krs/`**
     *   **Descrição:** Lista todos os Key Results (issues com as labels de KR configuradas).
     *   **Response Body:** `List[KRResponse]`.
-*   **`PUT /krs/{kr_iid}/description`** (Endpoint do `kr_description_router.py`)
-    *   **Descrição:** Atualiza a descrição completa de um Key Result.
-    *   **Request Body:** `KRDescriptionUpdateRequest` (contém `description`).
+*   **`PUT /krs/{kr_iid}`**
+    *   **Descrição:** Atualiza um Key Result existente. Permite alterar a descrição textual, meta prevista, meta realizada e a lista de responsáveis. Campos não fornecidos na requisição não serão alterados (manterão seus valores atuais), exceto a descrição que se tornará "(Descrição não fornecida)" se uma string vazia for passada.
+    *   **Request Body:** `KRUpdateRequest` (contém `description: Optional[str]`, `meta_prevista: Optional[float]`, `meta_realizada: Optional[float]`, `responsaveis: Optional[List[str]]`).
     *   **Response Body:** `KRResponse`.
 
 ### 3.3. Atividades (`/activities`)
@@ -99,7 +99,7 @@ Referência aos modelos definidos em `app/models.py`.
 *   `Activity`: Representação de uma Atividade.
 *   `ActivityCreateRequest`: Para adicionar uma lista de Atividades a um KR.
 *   `DescriptionResponse`: Resposta simples contendo uma string de descrição.
-*   `KRDescriptionUpdateRequest`: Para atualizar a descrição de um KR.
+*   `KRUpdateRequest`: Para atualizar campos de um Key Result (descrição, metas, responsáveis).
 
 Para a estrutura detalhada de cada modelo, consulte a documentação OpenAPI (`/docs`).
 

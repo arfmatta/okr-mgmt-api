@@ -37,6 +37,12 @@ class KRResponse(BaseModel):
 class KRDescriptionUpdateRequest(BaseModel):
     description: str
 
+class KRUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    meta_prevista: Optional[float] = Field(default=None, ge=0, le=100) # Percentage
+    meta_realizada: Optional[float] = Field(default=None, ge=0, le=100) # Percentage
+    responsaveis: Optional[List[str]] = None
+
 # --- Activity Models ---
 class Activity(BaseModel):
     project_action_activity: str

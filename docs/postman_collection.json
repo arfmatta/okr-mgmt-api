@@ -50,13 +50,31 @@
             "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] } }, "response": []
         },
         {
-            "name": "Update KR Description",
+            "name": "Update Key Result",
             "request": {
                 "method": "PUT",
-                "header": [ { "key": "Content-Type", "value": "application/json" } ],
-                "body": { "mode": "raw", "raw": "{\n    \"description\": \"Esta é a nova descrição completa do KR.\nContém múltiplas linhas e **Markdown**.\"\n}" },
-                "url": { "raw": "{{base_url}}/krs/{{kr_iid_example}}/description", "host": ["{{base_url}}"], "path": ["krs", "{{kr_iid_example}}", "description"] }
-            }, "response": []
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"description\": \"Esta é uma descrição atualizada para o Key Result. Pode incluir **Markdown** e múltiplas linhas.\",\n    \"meta_prevista\": 95.0,\n    \"meta_realizada\": 35.5,\n    \"responsaveis\": [\"Membro da Equipe A\", \"Membro da Equipe B\", \"Líder de Projeto C\"]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/krs/{{kr_iid_example}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "krs",
+                        "{{kr_iid_example}}"
+                    ]
+                }
+            },
+            "response": []
         },
         {
             "name": "Add Activities to KR",
