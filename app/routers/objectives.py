@@ -29,7 +29,8 @@ async def create_new_objective(
 
 @router.get("/", response_model=List[ObjectiveResponse])
 async def list_all_objectives(
-    service: ObjectiveService = Depends(get_current_objective_service)
+    service: ObjectiveService = Depends(get_current_objective_service),
+    current_user: User = Depends(get_current_active_user) # Added dependency
 ):
     try:
         objectives: List[ObjectiveResponse] = service.list_objectives() # Added type hint
@@ -40,7 +41,8 @@ async def list_all_objectives(
 @router.get("/{objective_iid}", response_model=ObjectiveResponse)
 async def get_specific_objective(
     objective_iid: int,
-    service: ObjectiveService = Depends(get_current_objective_service)
+    service: ObjectiveService = Depends(get_current_objective_service),
+    current_user: User = Depends(get_current_active_user) # Added dependency
 ):
     try:
         objective = service.get_objective(objective_iid)

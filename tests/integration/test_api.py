@@ -24,11 +24,21 @@ class TestAPIIntegration(unittest.TestCase):
         cls.client = TestClient(app)
         cls.created_objective_iids = []
         cls.created_kr_iids = []
+        cls.access_token = None
+        cls.auth_headers = {}
 
         if not all([settings.gitlab_api_url, settings.gitlab_access_token, settings.gitlab_project_id,
                     settings.gitlab_objective_labels, settings.gitlab_kr_labels]):
             raise EnvironmentError("GitLab API settings (URL, Token, Project ID, Labels) not configured. "
                                    "Ensure .env file is present and correctly set up for integration testing.")
+
+        # Acquire JWT token for the test class
+        token_response = cls.client.post("/auth/token", data={"username": "testuser", "password": "testpass"})
+        if token_response.status_code != 200:
+            raise Exception(f"Failed to acquire test token in setUpClass: {token_response.text}")
+        cls.access_token = token_response.json()["access_token"]
+        cls.auth_headers = {"Authorization": f"Bearer {cls.access_token}"}
+        print("Access token acquired for integration tests.")
 
     @classmethod
     def tearDownClass(cls):
@@ -47,7 +57,7 @@ class TestAPIIntegration(unittest.TestCase):
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"
         )
-        response = self.client.post("/objectives/", json=payload.model_dump())
+        response = self.client.post("/objectives/", json=payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 201, response.text)
         data = response.json()
@@ -94,7 +104,7 @@ class TestAPIIntegration(unittest.TestCase):
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"
         )
-        response = self.client.post("/krs/", json=payload.model_dump())
+        response = self.client.post("/krs/", json=payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 201, response.text)
         data = response.json()
@@ -136,7 +146,7 @@ class TestAPIIntegration(unittest.TestCase):
         activities_payload = ActivityCreateRequest(activities=[activity_detail])
 
         # Endpoint is POST /activities/kr/{kr_iid} as per app/routers/activities.py
-        response = self.client.post(f"/activities/kr/{target_kr_iid}", json=activities_payload.model_dump())
+        response = self.client.post(f"/activities/kr/{target_kr_iid}", json=activities_payload.model_dump(), headers=self.__class__.auth_headers)
 
         self.assertEqual(response.status_code, 200, response.text) # Returns 200 OK with DescriptionResponse
         data = response.json()
@@ -171,42 +181,31 @@ class TestAPIIntegration(unittest.TestCase):
         self.assertIn("Not authenticated", response.json().get("detail"),
                       "Detail message might vary based on FastAPI/Starlette defaults for missing token")
 
-    def test_05_get_token_and_access_protected_route(self):
-        print("Running test_05_get_token_and_access_protected_route")
+    # test_05_get_token_and_access_protected_route is removed as its functionality
+    # is now covered by setUpClass token acquisition and test_01_create_objective.
 
-        # 1. Obtain token from /auth/token
-        token_response = self.client.post(
-            "/auth/token",
-            data={"username": "testuser", "password": "testpass"} # Form data
-        )
-        self.assertEqual(token_response.status_code, 200, token_response.text)
-        token_data = token_response.json()
-        self.assertIn("access_token", token_data)
-        self.assertEqual(token_data["token_type"], "bearer")
-        access_token = token_data["access_token"]
+    def test_06_access_protected_get_routes(self):
+        print("Running test_06_access_protected_get_routes")
 
-        # 2. Access protected route (POST /objectives/) with the token
-        headers = {"Authorization": f"Bearer {access_token}"}
-        objective_payload = {
-            "obj_number": 102,
-            "title": "Test Objective With Token",
-            "description": "This objective creation should succeed.",
-            "team_label": "TeamAuthTest",
-            "product_label": "ProductAuthTest"
-        }
-        response = self.client.post("/objectives/", json=objective_payload, headers=headers)
+        # Test GET /objectives/ without token
+        response_no_token_obj_list = self.client.get("/objectives/")
+        self.assertEqual(response_no_token_obj_list.status_code, 401)
+        self.assertIn("Not authenticated", response_no_token_obj_list.json().get("detail"))
 
-        self.assertEqual(response.status_code, 201, response.text)
-        created_objective_data = response.json()
-        self.assertEqual(created_objective_data.get("title"), f"OBJ{objective_payload['obj_number']}: {objective_payload['title'].upper()}")
+        # Test GET /objectives/ with token
+        response_with_token_obj_list = self.client.get("/objectives/", headers=self.__class__.auth_headers)
+        self.assertEqual(response_with_token_obj_list.status_code, 200)
+        self.assertIsInstance(response_with_token_obj_list.json(), list) # Expect a list of objectives
 
-        # Optionally, store this IID if other tests depend on an objective created by an authenticated user
-        if created_objective_data.get("id"):
-            # Ensure this list is part of the class setup if used across methods like this
-            if not hasattr(self.__class__, 'created_objective_iids_authed'):
-                 self.__class__.created_objective_iids_authed = []
-            self.__class__.created_objective_iids_authed.append(created_objective_data["id"])
-            print(f"Authenticated objective created with IID: {created_objective_data['id']}")
+        # Test GET /krs/ without token
+        response_no_token_kr_list = self.client.get("/krs/")
+        self.assertEqual(response_no_token_kr_list.status_code, 401)
+        self.assertIn("Not authenticated", response_no_token_kr_list.json().get("detail"))
+
+        # Test GET /krs/ with token
+        response_with_token_kr_list = self.client.get("/krs/", headers=self.__class__.auth_headers)
+        self.assertEqual(response_with_token_kr_list.status_code, 200)
+        self.assertIsInstance(response_with_token_kr_list.json(), list) # Expect a list of KRs
 
 if __name__ == '__main__':
     import sys

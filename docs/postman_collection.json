@@ -60,17 +60,34 @@
         },
         {
             "name": "List Objectives",
-            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/objectives/", "host": ["{{base_url}}"], "path": ["objectives", ""] } }, "response": []
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/objectives/", "host": ["{{base_url}}"], "path": ["objectives", ""] }
+            },
+            "response": []
         },
         {
             "name": "Get Specific Objective",
-            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/objectives/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["objectives", "{{objective_iid_example}}"] } }, "response": []
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/objectives/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["objectives", "{{objective_iid_example}}"] }
+            },
+            "response": []
         },
         {
             "name": "Create Key Result",
             "request": {
                 "method": "POST",
-                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
                 "body": {
                     "mode": "raw",
                     "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100.0,\n    \"meta_realizada\": 0.0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"],\n    \"team_label\": \"EquipeKR\",\n    \"product_label\": \"ProdutoKR\"\n}"
@@ -80,25 +97,44 @@
         },
         {
             "name": "Get Specific KR",
-            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/{{kr_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "{{kr_iid_example}}"] } }, "response": []
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/krs/{{kr_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "{{kr_iid_example}}"] }
+            },
+            "response": []
         },
         {
             "name": "List KRs for Objective",
-            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/objective/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "objective", "{{objective_iid_example}}"] } }, "response": []
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/krs/objective/{{objective_iid_example}}", "host": ["{{base_url}}"], "path": ["krs", "objective", "{{objective_iid_example}}"] }
+            },
+            "response": []
         },
         {
             "name": "List All KRs",
-            "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] } }, "response": []
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] }
+            },
+            "response": []
         },
         {
             "name": "Update Key Result",
             "request": {
                 "method": "PUT",
                 "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
                 ],
                 "body": {
                     "mode": "raw",
@@ -121,7 +157,10 @@
             "name": "Add Activities to KR",
             "request": {
                 "method": "POST",
-                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
                 "body": {
                     "mode": "raw",
                     "raw": "{\n    \"activities\": [\n        {\n            \"project_action_activity\": \"Desenvolver tutorial interativo\",\n            \"stakeholders\": \"Equipe de Produto, Equipe de UX\",\n            \"deadline_planned\": \"Q3/2024\",\n            \"deadline_achieved\": null,\n            \"progress_planned_percent\": 100.0,\n            \"progress_achieved_percent\": 25.0\n        }\n    ]\n}"
