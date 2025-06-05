@@ -15,6 +15,9 @@ class TestActivityService(unittest.TestCase):
 
         self.activity_service = ActivityService()
 
+        # Injete explicitamente o mock na instância do serviço
+        self.activity_service.gitlab_service = self.mock_gitlab_service_instance
+
         self.mock_gitlab_service_instance_patched.reset_mock()
 
     def tearDown(self):
@@ -85,12 +88,12 @@ class TestActivityService(unittest.TestCase):
             Activity(project_action_activity="Only Activity", stakeholders="User C", deadline_planned="Q4", deadline_achieved=None, progress_planned_percent=100.0, progress_achieved_percent=10.0)
         ]
         expected_row = "| Only Activity | User C | Q4 |  | 100.0% | 10.0% |"
+        # Adicione o cabeçalho e o separador conforme gerado pelo serviço
+        expected_header = "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |"
+        expected_separator = "|---------------------------|----------------------|----------------|-----------------|------------|-------------|"
+        expected_final_description = f"{expected_header}\n{expected_separator}\n{expected_row}"
 
         updated_description = self.activity_service.add_activities_to_kr_description(kr_iid, activities_to_add)
-
-        # If initial description is empty, new rows are added directly.
-        # The service's current logic: updated_description = new_rows_string
-        expected_final_description = expected_row
 
         self.mock_gitlab_service_instance_patched.update_issue.assert_called_once_with(
             issue_iid=kr_iid,

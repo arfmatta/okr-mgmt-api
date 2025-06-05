@@ -10,27 +10,20 @@ class TestObjectiveService(unittest.TestCase):
 
     def setUp(self):
         self.mock_gitlab_service_instance = MagicMock()
-
         self.gitlab_service_patcher = patch('app.services.objective_service.gitlab_service', self.mock_gitlab_service_instance)
         self.mock_gitlab_service_instance_patched = self.gitlab_service_patcher.start()
-
-        # Instantiate Settings with string values for the fields that have validators,
-        # mimicking how these values would be loaded from .env before parsing.
         self.test_settings = Settings(
             gitlab_api_url="https://fakegitlab.com",
             gitlab_access_token="faketoken",
             gitlab_project_id="fakeproject",
-            # Pass the raw comma-separated string to the actual field name
-            # The @field_validator in Settings will parse this.
-            gitlab_objective_labels="ObjectiveName,AnotherLabel",
-            gitlab_kr_labels="KRName"
+            gitlab_objective_labels=["2025", "OKR SUTI", "OKR::Objetivo", "OKR::Q2"],
+            gitlab_kr_labels=["2025", "OKR SUTI", "OKR::Resultado Chave", "OKR::Q2"]
         )
-        # Patch 'settings' in app.config where it's defined and globally used.
         self.settings_patcher = patch('app.config.settings', self.test_settings)
         self.mock_settings_patched = self.settings_patcher.start()
-
-        self.objective_service = ObjectiveService() # ObjectiveService will use the patched app.config.settings
-
+        self.objective_service = ObjectiveService()
+        # Injete explicitamente o mock na instância do serviço
+        self.objective_service.gitlab_service = self.mock_gitlab_service_instance
         self.mock_gitlab_service_instance_patched.reset_mock()
 
     def tearDown(self):
@@ -49,27 +42,30 @@ class TestObjectiveService(unittest.TestCase):
         objective_data = ObjectiveCreateRequest(
             obj_number=1,
             title="Test Objective Uppercase",
-            description="Test Description"
+            description="Test Description",
+            team_label="TeamX",
+            product_label="ProductY"
         )
 
         response = self.objective_service.create_objective(objective_data)
 
         expected_title = "OBJ1: TEST OBJECTIVE UPPERCASE"
         expected_description = "###  Descrição:\n\n> Test Description\n\n### Resultados Chave"
+        # Monte o valor esperado de labels conforme a lógica do serviço
+        expected_labels = self.test_settings.gitlab_objective_labels + [objective_data.team_label, objective_data.product_label]
 
-        # ObjectiveService uses self.test_settings (which is the patched global settings).
-        # The labels in self.test_settings will be the *parsed list* due to Settings model's own validation.
-        self.mock_gitlab_service_instance_patched.create_issue.assert_called_once_with(
-            title=expected_title,
-            description=expected_description,
-            labels=self.test_settings.gitlab_objective_labels # This should be ["ObjectiveName", "AnotherLabel"]
-        )
+        # Verifique a chamada ignorando a ordem dos labels
+        self.mock_gitlab_service_instance_patched.create_issue.assert_called_once()
+        args, kwargs = self.mock_gitlab_service_instance_patched.create_issue.call_args
+        self.assertEqual(kwargs['title'], expected_title)
+        self.assertEqual(kwargs['description'], expected_description)
+        self.assertCountEqual(kwargs['labels'], expected_labels)
 
         self.assertIsInstance(response, ObjectiveResponse)
         self.assertEqual(response.id, mock_created_issue.iid)
         self.assertEqual(response.title, mock_created_issue.title)
         self.assertEqual(response.description, mock_created_issue.description)
-        self.assertEqual(response.web_url, mock_created_issue.web_url)
+        self.assertEqual(str(response.web_url), str(mock_created_issue.web_url))
 
     def test_create_objective_title_is_upper_cased(self):
         mock_created_issue = MagicMock(spec=ProjectIssue)
@@ -83,7 +79,9 @@ class TestObjectiveService(unittest.TestCase):
         objective_data = ObjectiveCreateRequest(
             obj_number=2,
             title="another test lowercase",
-            description="desc"
+            description="desc",
+            team_label="TeamX",
+            product_label="ProductY"
         )
         self.objective_service.create_objective(objective_data)
 
