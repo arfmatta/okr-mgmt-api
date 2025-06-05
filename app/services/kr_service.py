@@ -49,7 +49,6 @@ class KRService:
             "",
             "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |",
             "|---------------------------|----------------------|----------------|-----------------|------------|-------------|",
-            "|                           |                      |                |                 |            |             |"
         ]
         return "\n".join(description_parts)
 
