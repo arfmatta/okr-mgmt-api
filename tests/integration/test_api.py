@@ -140,8 +140,8 @@ class TestAPIIntegration(unittest.TestCase):
             stakeholders="Dev Team",
             deadline_planned="Q4/2024",
             deadline_achieved=None, # Test None case for deadline_achieved
-            progress_planned_percent=100.0,
-            progress_achieved_percent=0.0
+            progress_planned_percent=100, # Changed from 100.0
+            progress_achieved_percent=0   # Changed from 0.0
         )
         activities_payload = ActivityCreateRequest(activities=[activity_detail])
 

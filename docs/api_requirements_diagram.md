@@ -103,7 +103,7 @@ Referência aos modelos definidos em `app/models.py`.
 *   `ObjectiveResponse`: Representação de um Objetivo.
 *   `KRCreateRequest`: Para criar Key Results.
 *   `KRResponse`: Representação de um Key Result.
-*   `Activity`: Representação de uma Atividade.
+*   `Activity`: Representação de uma Atividade (contém project_action_activity: str, stakeholders: str, deadline_planned: str, deadline_achieved: Optional[str], progress_planned_percent: int, progress_achieved_percent: int).
 *   `ActivityCreateRequest`: Para adicionar uma lista de Atividades a um KR.
 *   `DescriptionResponse`: Resposta simples contendo uma string de descrição.
 *   `KRUpdateRequest`: Para atualizar campos de um Key Result (descrição, metas, responsáveis).

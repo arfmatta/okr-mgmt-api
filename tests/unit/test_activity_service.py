@@ -29,10 +29,10 @@ class TestActivityService(unittest.TestCase):
             stakeholders="Team Alpha",
             deadline_planned="Q1/2024",
             deadline_achieved="Q1/2024",
-            progress_planned_percent=100.0,
-            progress_achieved_percent=100.0
+            progress_planned_percent=100,
+            progress_achieved_percent=100
         )
-        expected_row = "| Develop feature X | Team Alpha | Q1/2024 | Q1/2024 | 100.0% | 100.0% |"
+        expected_row = "| Develop feature X | Team Alpha | Q1/2024 | Q1/2024 | 100% | 100% |"
         # The service method is private-like, but for testing its core logic, we call it directly.
         # If it were truly private and complex, we'd test it through the public method.
         self.assertEqual(self.activity_service._serialize_activity_to_table_row(activity), expected_row)
@@ -42,10 +42,10 @@ class TestActivityService(unittest.TestCase):
             stakeholders="Product Owner",
             deadline_planned="Q2/2024",
             deadline_achieved=None, # Test None case
-            progress_planned_percent=50.0,
-            progress_achieved_percent=0.0
+            progress_planned_percent=50,
+            progress_achieved_percent=0
         )
-        expected_row_empty_achieved = "| Plan phase 2 | Product Owner | Q2/2024 |  | 50.0% | 0.0% |"
+        expected_row_empty_achieved = "| Plan phase 2 | Product Owner | Q2/2024 |  | 50% | 0% |"
         self.assertEqual(self.activity_service._serialize_activity_to_table_row(activity_empty_achieved), expected_row_empty_achieved)
 
     def test_add_activities_to_kr_description_new_activities(self):
@@ -57,12 +57,12 @@ class TestActivityService(unittest.TestCase):
         # update_issue doesn't need a specific return value for this test, just verification of call.
 
         activities_to_add = [
-            Activity(project_action_activity="Activity 1", stakeholders="User A", deadline_planned=" Сегодня ", deadline_achieved=None, progress_planned_percent=100.0, progress_achieved_percent=50.0),
-            Activity(project_action_activity="Activity 2", stakeholders="User B", deadline_planned=" Завтра ", deadline_achieved=None, progress_planned_percent=100.0, progress_achieved_percent=0.0)
+            Activity(project_action_activity="Activity 1", stakeholders="User A", deadline_planned=" Сегодня ", deadline_achieved=None, progress_planned_percent=100, progress_achieved_percent=50),
+            Activity(project_action_activity="Activity 2", stakeholders="User B", deadline_planned=" Завтра ", deadline_achieved=None, progress_planned_percent=100, progress_achieved_percent=0)
         ]
 
-        expected_row1 = "| Activity 1 | User A |  Сегодня  |  | 100.0% | 50.0% |"
-        expected_row2 = "| Activity 2 | User B |  Завтра  |  | 100.0% | 0.0% |"
+        expected_row1 = "| Activity 1 | User A |  Сегодня  |  | 100% | 50% |"
+        expected_row2 = "| Activity 2 | User B |  Завтра  |  | 100% | 0% |"
 
         # Call the method under test
         updated_description = self.activity_service.add_activities_to_kr_description(kr_iid, activities_to_add)
@@ -85,9 +85,9 @@ class TestActivityService(unittest.TestCase):
         self.mock_gitlab_service_instance_patched.get_issue.return_value = mock_kr_issue
 
         activities_to_add = [
-            Activity(project_action_activity="Only Activity", stakeholders="User C", deadline_planned="Q4", deadline_achieved=None, progress_planned_percent=100.0, progress_achieved_percent=10.0)
+            Activity(project_action_activity="Only Activity", stakeholders="User C", deadline_planned="Q4", deadline_achieved=None, progress_planned_percent=100, progress_achieved_percent=10)
         ]
-        expected_row = "| Only Activity | User C | Q4 |  | 100.0% | 10.0% |"
+        expected_row = "| Only Activity | User C | Q4 |  | 100% | 10% |"
         # Adicione o cabeçalho e o separador conforme gerado pelo serviço
         expected_header = "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |"
         expected_separator = "|---------------------------|----------------------|----------------|-----------------|------------|-------------|"

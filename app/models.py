@@ -49,8 +49,8 @@ class Activity(BaseModel):
     stakeholders: str
     deadline_planned: str # e.g., "Month/Year" or specific date string
     deadline_achieved: Optional[str] = None
-    progress_planned_percent: float = Field(..., ge=0, le=100)
-    progress_achieved_percent: float = Field(default=0.0, ge=0, le=100)
+    progress_planned_percent: int = Field(..., ge=0, le=100)
+    progress_achieved_percent: int = Field(default=0, ge=0, le=100)
 
 class ActivityCreateRequest(BaseModel):
     activities: List[Activity]
