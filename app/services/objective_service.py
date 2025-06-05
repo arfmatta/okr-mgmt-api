@@ -45,7 +45,7 @@ class ObjectiveService:
         Retrieves a specific objective (GitLab issue) by its IID.
         """
         try:
-            issue = self.gitlab_service.get_issue(issue_iid)
+            issue = self.gitlab_service.get_issue(objective_iid)
             # Basic check if it's an objective - ideally, it should have the objective labels
             # For simplicity, we assume any issue retrieved by IID here is intended to be an objective
             # A more robust check would verify labels if necessary.
