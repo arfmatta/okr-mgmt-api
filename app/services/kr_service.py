@@ -103,13 +103,14 @@ class KRService:
         return self._map_issue_to_kr_response(created_kr_issue, kr_data.objective_iid)
 
     # Method to be placed inside KRService class:
-    def update_kr(self, kr_iid: int, kr_data: KRUpdateRequest) -> KRResponse:
+    def update_kr(self, kr_iid: int, kr_data_input: KRUpdateRequest) -> KRResponse:
         try:
             issue = self.gitlab_service.get_issue(kr_iid)
         except gitlab.exceptions.GitlabGetError:
             raise ValueError(f"KR with IID {kr_iid} not found.")
 
         current_description = issue.description or ""
+        updates = kr_data_input.model_dump(exclude_unset=True)
 
         # --- Determine new values, falling back to current if not provided ---
 
@@ -117,33 +118,34 @@ class KRService:
         current_quoted_desc_match = re.search(r"### Descrição\s*((?:> .*(?:\n|$))+)", current_description, re.MULTILINE)
         current_quoted_desc_content = ""
         if current_quoted_desc_match:
-            lines = current_quoted_desc_match.group(1).strip().split('\n') # Use '\n' for split if dealing with literal
-            current_quoted_desc_content = "\n".join([line[2:] if line.startswith("> ") else line for line in lines]) # Use '\n' for join
+            lines = current_quoted_desc_match.group(1).strip().split('\n')
+            current_quoted_desc_content = "\n".join([line[2:] if line.startswith("> ") else line for line in lines])
 
-        final_description_content = kr_data.description if kr_data.description is not None else current_quoted_desc_content
-
-        if final_description_content.strip():
-            final_quoted_description_block = "\n".join([f"> {line}" for line in final_description_content.splitlines()]) # splitlines handles
-
-        else:
+        final_description_content = updates.get("description", current_quoted_desc_content)
+        if "description" in updates and not final_description_content.strip(): # Specifically check if update was to empty
             final_quoted_description_block = "> (Descrição não fornecida)"
+        elif final_description_content.strip():
+            final_quoted_description_block = "\n".join([f"> {line}" for line in final_description_content.splitlines()])
+        else: # Fallback to current or default if current was also empty
+            final_quoted_description_block = "> (Descrição não fornecida)"
+
 
         # 2. Meta Prevista
         meta_prevista_match = re.search(r"\*\*Meta prevista\*\*: ([\d\.]+)\s*%", current_description)
         current_meta_prevista = int(float(meta_prevista_match.group(1))) if meta_prevista_match else 0
-        final_meta_prevista = kr_data.meta_prevista if kr_data.meta_prevista is not None else current_meta_prevista
+        final_meta_prevista = updates.get("meta_prevista", current_meta_prevista)
 
         # 3. Meta Realizada
         meta_realizada_match = re.search(r"\*\*Meta realizada\*\*: ([\d\.]+)\s*%", current_description)
         current_meta_realizada = int(float(meta_realizada_match.group(1))) if meta_realizada_match else 0
-        final_meta_realizada = kr_data.meta_realizada if kr_data.meta_realizada is not None else current_meta_realizada
+        final_meta_realizada = updates.get("meta_realizada", current_meta_realizada)
 
         # 4. Responsáveis
-        responsaveis_match = re.search(r"\*\*Responsável\(eis\)\*\*: ([^\n]+)", current_description) # Matches till newline
+        responsaveis_match = re.search(r"\*\*Responsável\(eis\)\*\*: ([^\n]+)", current_description)
         current_responsaveis_str = responsaveis_match.group(1).strip() if responsaveis_match else "N/A"
 
-        if kr_data.responsaveis is not None:
-            final_responsaveis_str = ", ".join(kr_data.responsaveis) if kr_data.responsaveis else "N/A"
+        if "responsaveis" in updates:
+            final_responsaveis_str = ", ".join(updates["responsaveis"]) if updates["responsaveis"] else "N/A"
         else:
             final_responsaveis_str = current_responsaveis_str
 

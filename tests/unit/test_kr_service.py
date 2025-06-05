@@ -1,28 +1,48 @@
+import sys
 import unittest
 from unittest.mock import MagicMock, patch, call
-import re # For verifying appended KR reference in objective's description
+import re
 
-from app.services.kr_service import KRService
-from app.models import KRCreateRequest, KRResponse, KRUpdateRequest # Added KRUpdateRequest
-from app.config import Settings # Import Settings to create test_settings instance
+# Imports that rely on the global patches being active (from tests/unit/__init__.py)
+from app.services.kr_service import KRService # Relies on app.services.gitlab_service being patched
+from app.models import KRCreateRequest, KRResponse, KRUpdateRequest
+from app.config import Settings
+# gitlab.v4.objects and gitlab.exceptions are generally safe as they usually don't auto-init connections
 from gitlab.v4.objects import ProjectIssue
-from gitlab.exceptions import GitlabGetError # Added for test_update_kr_not_found
+from gitlab.exceptions import GitlabGetError
+
+# We expect app.services.gitlab_service.GitlabService and gitlab.Gitlab to be MagicMocks
+# already due to tests/unit/__init__.py.
+# We still need to import them here to reference them.
+# However, to be absolutely sure about module references, we'll use sys.modules in setUp.
+# import gitlab # No longer strictly needed at module level if accessed via sys.modules
+# import app.services.gitlab_service # No longer strictly needed at module level if accessed via sys.modules
 
 class TestKRService(unittest.TestCase):
 
     def setUp(self):
-        # Crie um mock explícito para cada método usado
-        self.mock_gitlab_service_instance = MagicMock(spec=[
-            "get_issue",
-            "create_issue",
-            "link_issues",
-            "update_issue"
-        ])
-        # Patch o gitlab_service no local correto
-        gitlab_service_patcher = patch('app.services.kr_service.gitlab_service', self.mock_gitlab_service_instance)
-        self.gitlab_service_patcher = gitlab_service_patcher
-        self.mock_gitlab_service_patched = gitlab_service_patcher.start()
+        # Ensure the modules are accessible via sys.modules, as __init__.py should have imported them.
+        # This is to avoid any local aliasing or import issues.
+        gs_module = sys.modules.get('app.services.gitlab_service')
+        lib_gitlab_module = sys.modules.get('gitlab')
 
+        if gs_module is None:
+            raise ImportError("Module app.services.gitlab_service not found in sys.modules. __init__.py might have failed.")
+        if lib_gitlab_module is None:
+            raise ImportError("Module gitlab not found in sys.modules. __init__.py might have failed.")
+
+        # app.services.gitlab_service.GitlabService should be a MagicMock class due to __init__.py
+        # gitlab.Gitlab should also be a MagicMock class due to __init__.py
+
+        # Configure the mock instance that our GitlabService wrapper would produce
+        self.mock_gitlab_service_instance = gs_module.GitlabService.return_value # Accessing the mocked class
+        self.mock_gitlab_service_instance.get_issue = MagicMock()
+        self.mock_gitlab_service_instance.create_issue = MagicMock()
+        self.mock_gitlab_service_instance.link_issues = MagicMock()
+        self.mock_gitlab_service_instance.update_issue = MagicMock()
+        self.mock_gitlab_service_instance.list_issues = MagicMock()
+
+        # Define test_settings for this test's context
         self.test_settings = Settings(
             gitlab_api_url="https://fakegitlab.com",
             gitlab_access_token="faketoken",
@@ -30,21 +50,82 @@ class TestKRService(unittest.TestCase):
             gitlab_objective_labels=["2025", "OKR SUTI", "OKR::Objetivo", "OKR::Q2"],
             gitlab_kr_labels=["2025", "OKR SUTI", "OKR::Resultado Chave", "OKR::Q2"]
         )
-        # Patch 'settings' instance em app.config
-        settings_patcher = patch('app.config.settings', self.test_settings)
-        self.settings_patcher = settings_patcher
-        self.mock_settings_patched = settings_patcher.start()
 
+        # Patch the 'gitlab_service' instance that KRService will import and use.
+        # In app.services.kr_service.py, it's likely:
+        # from .gitlab_service import gitlab_service (or from app.services.gitlab_service import gitlab_service)
+        # So we patch 'app.services.kr_service.gitlab_service' if KRService does `from . import gitlab_service`
+        # or 'app.services.gitlab_service.gitlab_service' if KRService does `from app.services.gitlab_service import gitlab_service`
+        # Let's assume KRService might do `from app.services.gitlab_service import gitlab_service as some_alias`
+        # or just `from app.services.gitlab_service import gitlab_service`.
+        # The most crucial is that the instance *within* app.services.gitlab_service is our mock.
+
+        # Patch the 'gitlab_service' *instance variable* within the actual app.services.gitlab_service module.
+        # gs_module is sys.modules['app.services.gitlab_service']
+        self.gitlab_service_module_instance_patcher = patch.object(
+            gs_module,  # The actual module object obtained from sys.modules
+            'gitlab_service',  # The name of the instance variable in that module
+            self.mock_gitlab_service_instance
+        )
+        self.gitlab_service_module_instance_patcher.start()
+
+        # Patch the name 'gitlab_service' that KRService itself imports.
+        # This handles the case: `from app.services.gitlab_service import gitlab_service` in kr_service.py
+        # (or `from .gitlab_service import gitlab_service`).
+        # This might be redundant if the above patch.object is sufficient and KRService uses that directly,
+        # but it covers the import reference within KRService's module scope.
+        self.kr_service_import_patcher = patch('app.services.kr_service.gitlab_service', self.mock_gitlab_service_instance)
+        self.kr_service_import_patcher.start()
+
+        # Patch 'settings' instance in app.config (used by KRService)
+        self.config_settings_patcher = patch('app.config.settings', self.test_settings)
+        self.config_settings_patcher.start()
+
+        # Patch 'settings' instance in the actual gitlab_service module object
+        # gs_module is sys.modules['app.services.gitlab_service']
+        self.gitlab_service_settings_patcher = patch.object(
+            gs_module,       # The actual module object
+            'settings',      # Name of the settings attribute in that module
+            self.test_settings
+        )
+        self.gitlab_service_settings_patcher.start()
+
+        # Patch 'settings' as imported by app.services.kr_service module
+        kr_module = sys.modules.get('app.services.kr_service')
+        if kr_module is None:
+            # This would happen if KRService was not imported at the top, so kr_service module wouldn't be in sys.modules yet.
+            # However, "from app.services.kr_service import KRService" at the top ensures it is.
+            raise ImportError("Module app.services.kr_service not found in sys.modules for settings patch.")
+
+        self.kr_service_settings_patcher = patch.object(
+            kr_module,       # The actual kr_service module object
+            'settings',      # Name of the settings object within that module
+            self.test_settings
+        )
+        self.kr_service_settings_patcher.start()
+
+        # Instantiate the service; it should pick up the patched dependencies.
         self.kr_service = KRService()
-        # Injete explicitamente o mock na instância do serviço
+        # Explicitly assign again to be absolutely sure, though patching should suffice.
         self.kr_service.gitlab_service = self.mock_gitlab_service_instance
 
-        # Limpe o mock para garantir que não há chamadas anteriores
+        # Reset all mocks on the instance that will be used (our GitlabService wrapper mock)
         self.mock_gitlab_service_instance.reset_mock()
 
+        # Reset the global MagicMock classes and their return_values for a clean slate per test.
+        # This is important because these mocks persist across tests in the same session.
+        if isinstance(gs_module.GitlabService, MagicMock): # Use gs_module
+            gs_module.GitlabService.reset_mock(return_value=True, side_effect=True)
+        if isinstance(lib_gitlab_module.Gitlab, MagicMock): # Use lib_gitlab_module
+            lib_gitlab_module.Gitlab.reset_mock(return_value=True, side_effect=True)
+
+
     def tearDown(self):
-        self.gitlab_service_patcher.stop()
-        self.settings_patcher.stop()
+        self.gitlab_service_settings_patcher.stop()
+        self.config_settings_patcher.stop()
+        self.gitlab_service_module_instance_patcher.stop()
+        self.kr_service_import_patcher.stop() # Renamed from kr_service_gitlab_instance_patcher
+        self.kr_service_settings_patcher.stop() # Stop the new patcher
 
     def test_create_kr_full_logic(self):
         # --- Mocking Parent Objective ---
@@ -74,8 +155,8 @@ class TestKRService(unittest.TestCase):
         mock_created_kr.description = self.kr_service._format_kr_description(temp_kr_data_for_formatting)
         mock_created_kr.web_url = "https://fakegitlab.com/fakeproject/issues/101"
 
-        self.mock_gitlab_service_patched.get_issue.return_value = mock_parent_objective
-        self.mock_gitlab_service_patched.create_issue.return_value = mock_created_kr
+        self.mock_gitlab_service_instance.get_issue.return_value = mock_parent_objective
+        self.mock_gitlab_service_instance.create_issue.return_value = mock_created_kr
 
         kr_data = KRCreateRequest(
             objective_iid=10,
@@ -91,8 +172,8 @@ class TestKRService(unittest.TestCase):
 
         response = self.kr_service.create_kr(kr_data)
 
-        self.mock_gitlab_service_patched.get_issue.assert_any_call(kr_data.objective_iid)
-        self.assertEqual(self.mock_gitlab_service_patched.get_issue.call_count, 2)
+        self.mock_gitlab_service_instance.get_issue.assert_any_call(kr_data.objective_iid)
+        self.assertEqual(self.mock_gitlab_service_instance.get_issue.call_count, 2)
 
         expected_kr_title_on_create = "OBJ1 - KR1: New KR Title"
         expected_kr_description_on_create = self.kr_service._format_kr_description(kr_data)
@@ -101,19 +182,19 @@ class TestKRService(unittest.TestCase):
         expected_labels = self.test_settings.gitlab_kr_labels + [kr_data.team_label, kr_data.product_label]
 
         # Verifique a chamada ignorando a ordem dos labels
-        self.mock_gitlab_service_patched.create_issue.assert_called_once()
-        args, kwargs = self.mock_gitlab_service_patched.create_issue.call_args
+        self.mock_gitlab_service_instance.create_issue.assert_called_once()
+        args, kwargs = self.mock_gitlab_service_instance.create_issue.call_args
         self.assertEqual(kwargs['title'], expected_kr_title_on_create)
         self.assertEqual(kwargs['description'], expected_kr_description_on_create)
         self.assertCountEqual(kwargs['labels'], expected_labels)
 
-        self.mock_gitlab_service_patched.link_issues.assert_called_once_with(
+        self.mock_gitlab_service_instance.link_issues.assert_called_once_with(
             source_issue_iid=mock_created_kr.iid,
             target_issue_iid=mock_parent_objective.iid
         )
 
-        self.mock_gitlab_service_patched.update_issue.assert_called_once()
-        args_update, kwargs_update = self.mock_gitlab_service_patched.update_issue.call_args
+        self.mock_gitlab_service_instance.update_issue.assert_called_once()
+        args_update, kwargs_update = self.mock_gitlab_service_instance.update_issue.call_args
         self.assertEqual(kwargs_update['issue_iid'], mock_parent_objective.iid)
 
         updated_obj_description = kwargs_update['description']
@@ -160,8 +241,8 @@ class TestKRService(unittest.TestCase):
         mock_created_kr_fallback.description = self.kr_service._format_kr_description(temp_kr_data_for_fallback_formatting)
         mock_created_kr_fallback.web_url = "http://..."
 
-        self.mock_gitlab_service_patched.get_issue.return_value = mock_parent_objective_bad_title
-        self.mock_gitlab_service_patched.create_issue.return_value = mock_created_kr_fallback
+        self.mock_gitlab_service_instance.get_issue.return_value = mock_parent_objective_bad_title
+        self.mock_gitlab_service_instance.create_issue.return_value = mock_created_kr_fallback
 
         kr_data = KRCreateRequest(
             objective_iid=20,
@@ -176,10 +257,10 @@ class TestKRService(unittest.TestCase):
 
         response = self.kr_service.create_kr(kr_data)
 
-        args_create, kwargs_create = self.mock_gitlab_service_patched.create_issue.call_args
+        args_create, kwargs_create = self.mock_gitlab_service_instance.create_issue.call_args
         self.assertEqual(kwargs_create['title'], expected_kr_title_fallback)
 
-        args_update, kwargs_update = self.mock_gitlab_service_patched.update_issue.call_args
+        args_update, kwargs_update = self.mock_gitlab_service_instance.update_issue.call_args
         updated_obj_desc = kwargs_update['description']
 
         expected_kr_ref_line_fallback = f"- [ ] **OBJ20 - KR2**: Fallback KR ~\"{self.kr_service.kr_reference_label}\""
@@ -216,11 +297,25 @@ class TestKRService(unittest.TestCase):
             f"{activities_table_content}"
         )
 
-        self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
+        self.mock_gitlab_service_instance.get_issue.return_value = mock_current_issue
 
         # Mock the return value of update_issue to be the same issue object,
         # but its description will be checked via call_args
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
+        # self.mock_gitlab_service_instance.update_issue.return_value = mock_current_issue # Old way
+
+        # New way: Define a side_effect to return an issue with the updated description
+        def mock_update_issue_logic(*args_call, **kwargs_call):
+            updated_mock_issue = MagicMock(spec=ProjectIssue)
+            # Copy attributes from the original mock_current_issue that don't change
+            updated_mock_issue.iid = mock_current_issue.iid
+            updated_mock_issue.title = mock_current_issue.title # Title is not updated by this service method
+            updated_mock_issue.web_url = mock_current_issue.web_url
+            # The crucial part: set the description from what update_issue was called with
+            updated_mock_issue.description = kwargs_call.get('description', mock_current_issue.description)
+            # Add any other attributes that KRResponse might need from the issue
+            return updated_mock_issue
+
+        self.mock_gitlab_service_instance.update_issue.side_effect = mock_update_issue_logic
 
         update_payload = KRUpdateRequest(
             description="Updated detailed description.",
@@ -231,9 +326,9 @@ class TestKRService(unittest.TestCase):
 
         response = self.kr_service.update_kr(kr_iid, update_payload)
 
-        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
+        self.mock_gitlab_service_instance.get_issue.assert_called_once_with(kr_iid)
 
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        args, kwargs = self.mock_gitlab_service_instance.update_issue.call_args
         self.assertEqual(kwargs['issue_iid'], kr_iid)
 
         expected_updated_description = (
@@ -249,7 +344,8 @@ class TestKRService(unittest.TestCase):
         self.assertIsInstance(response, KRResponse)
         self.assertEqual(response.id, kr_iid)
         # The title and web_url are from mock_current_issue, description from update_issue call
-        self.assertEqual(response.description, kwargs['description'])
+        # The assertion should be against the expected_updated_description, which is what kwargs['description'] contains
+        self.assertEqual(response.description, expected_updated_description) # Changed this line for clarity
 
     def test_update_kr_partial_meta_realizada_success(self):
         NL = '\n'
@@ -275,15 +371,25 @@ class TestKRService(unittest.TestCase):
             f"{activities_table_content}"
         )
 
-        self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
+        self.mock_gitlab_service_instance.get_issue.return_value = mock_current_issue
+        # self.mock_gitlab_service_instance.update_issue.return_value = mock_current_issue # Old way
+
+        def mock_update_issue_logic_partial(*args_call, **kwargs_call):
+            updated_mock_issue = MagicMock(spec=ProjectIssue)
+            updated_mock_issue.iid = mock_current_issue.iid
+            updated_mock_issue.title = mock_current_issue.title
+            updated_mock_issue.web_url = mock_current_issue.web_url
+            updated_mock_issue.description = kwargs_call.get('description', mock_current_issue.description)
+            return updated_mock_issue
+
+        self.mock_gitlab_service_instance.update_issue.side_effect = mock_update_issue_logic_partial
 
         update_payload = KRUpdateRequest(meta_realizada=55) # Only updating this
 
         response = self.kr_service.update_kr(kr_iid, update_payload)
-        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
+        self.mock_gitlab_service_instance.get_issue.assert_called_once_with(kr_iid)
 
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        args, kwargs = self.mock_gitlab_service_instance.update_issue.call_args
         self.assertEqual(kwargs['issue_iid'], kr_iid)
 
         expected_updated_description = (
@@ -294,21 +400,21 @@ class TestKRService(unittest.TestCase):
             f"{activities_table_content}" # Preserved
         )
         self.assertEqual(kwargs['description'].replace('\r\n', NL), expected_updated_description.replace('\r\n', NL))
-        self.assertEqual(response.description, kwargs['description'])
+        self.assertEqual(response.description, expected_updated_description) # Changed this line
 
     def test_update_kr_not_found(self):
         kr_iid = 404
         # Ensure GitlabGetError is imported for this: from gitlab.exceptions import GitlabGetError
         # If not already, add `from gitlab.exceptions import GitlabGetError` to test file imports
         # from gitlab.exceptions import GitlabGetError # Local import for clarity or ensure it's at top
-        self.mock_gitlab_service_patched.get_issue.side_effect = GitlabGetError
+        self.mock_gitlab_service_instance.get_issue.side_effect = GitlabGetError
 
         update_payload = KRUpdateRequest(description="Doesn't matter")
 
         with self.assertRaisesRegex(ValueError, f"KR with IID {kr_iid} not found."):
             self.kr_service.update_kr(kr_iid, update_payload)
-        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
-        self.mock_gitlab_service_patched.update_issue.assert_not_called()
+        self.mock_gitlab_service_instance.get_issue.assert_called_once_with(kr_iid)
+        self.mock_gitlab_service_instance.update_issue.assert_not_called()
 
     def test_update_kr_empty_description_and_responsaveis(self):
         NL = '\n'
@@ -334,14 +440,24 @@ class TestKRService(unittest.TestCase):
             f"{activities_table_content}"
         )
 
-        self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
+        self.mock_gitlab_service_instance.get_issue.return_value = mock_current_issue
+        # self.mock_gitlab_service_instance.update_issue.return_value = mock_current_issue # Old way
+
+        def mock_update_issue_logic_empty(*args_call, **kwargs_call):
+            updated_mock_issue = MagicMock(spec=ProjectIssue)
+            updated_mock_issue.iid = mock_current_issue.iid
+            updated_mock_issue.title = mock_current_issue.title
+            updated_mock_issue.web_url = mock_current_issue.web_url
+            updated_mock_issue.description = kwargs_call.get('description', mock_current_issue.description)
+            return updated_mock_issue
+
+        self.mock_gitlab_service_instance.update_issue.side_effect = mock_update_issue_logic_empty
 
         update_payload = KRUpdateRequest(description="", responsaveis=[])
 
         response = self.kr_service.update_kr(kr_iid, update_payload)
 
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        args, kwargs = self.mock_gitlab_service_instance.update_issue.call_args
         expected_updated_description = (
             f"### Descrição{NL}{NL}> (Descrição não fornecida){NL}{NL}" # Updated description
             f"**Meta prevista**: {original_meta_prevista}%  {NL}"   # Preserved
@@ -350,7 +466,7 @@ class TestKRService(unittest.TestCase):
             f"{activities_table_content}"                           # Preserved
         )
         self.assertEqual(kwargs['description'].replace('\r\n', NL), expected_updated_description.replace('\r\n', NL))
-        self.assertEqual(response.description, kwargs['description'])
+        self.assertEqual(response.description, expected_updated_description) # Changed this line
 
     # Remember to reset mocks for each test if not done in setUp for every call
     # The current setUp does reset_mock on the main instance.
