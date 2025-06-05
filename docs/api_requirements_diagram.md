@@ -84,7 +84,7 @@ A API expõe os seguintes endpoints principais. Para detalhes completos sobre os
     *   **Response Body:** `List[KRResponse]`.
 *   **`PUT /krs/{kr_iid}`**
     *   **Descrição:** **Requer autenticação JWT.** Atualiza um Key Result existente. Permite alterar a descrição textual, meta prevista, meta realizada e a lista de responsáveis. Campos não fornecidos na requisição não serão alterados (manterão seus valores atuais), exceto a descrição que se tornará "(Descrição não fornecida)" se uma string vazia for passada.
-    *   **Request Body:** `KRUpdateRequest` (contém `description: Optional[str]`, `meta_prevista: Optional[float]`, `meta_realizada: Optional[float]`, `responsaveis: Optional[List[str]]`).
+    *   **Request Body:** `KRUpdateRequest` (contém `description: Optional[str]`, `meta_prevista: Optional[int]`, `meta_realizada: Optional[int]`, `responsaveis: Optional[List[str]]`).
     *   **Response Body:** `KRResponse`.
 
 ### 3.3. Atividades (`/activities`)
