@@ -21,7 +21,7 @@ class ObjectiveService:
         title = f"OBJ{objective_data.obj_number}: {objective_data.title.upper()}"
         description = f"###  Descrição:\n\n> {objective_data.description}\n\n### Resultados Chave"
 
-        labels_to_apply: List[str] = list(set(self.objective_labels))
+        labels_to_apply: List[str] = list(set(self.objective_labels)) + [objective_data.team_label, objective_data.product_label]
 
         try:
             issue = self.gitlab_service.create_issue(

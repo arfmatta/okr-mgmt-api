@@ -62,7 +62,7 @@ class KRService:
 
         kr_title = f"{objective_prefix} - KR{kr_data.kr_number}: {kr_data.title}"
         kr_description = self._format_kr_description(kr_data)
-        labels_to_apply: List[str] = list(set(self.kr_labels))
+        labels_to_apply: List[str] = list(set(self.kr_labels)) + [kr_data.team_label, kr_data.product_label]
 
         created_kr_issue = self.gitlab_service.create_issue(
             title=kr_title, description=kr_description, labels=labels_to_apply

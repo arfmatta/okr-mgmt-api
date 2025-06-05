@@ -6,6 +6,8 @@ class ObjectiveCreateRequest(BaseModel):
     obj_number: int
     title: str
     description: str
+    team_label: str
+    product_label: str
 
 class ObjectiveResponse(BaseModel):
     id: int # GitLab issue IID
@@ -21,6 +23,8 @@ class KRCreateRequest(BaseModel):
     description: str # Detailed description of the KR itself
     meta_prevista: float = Field(..., ge=0, le=100) # Percentage
     meta_realizada: float = Field(default=0.0, ge=0, le=100) # Percentage
+    team_label: str
+    product_label: str
     responsaveis: List[str]
 
 class KRResponse(BaseModel):
