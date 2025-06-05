@@ -4,16 +4,16 @@ from app.routers import objectives, krs, activities, kr_description_router # Add
 app = FastAPI(title="Objectives and Key Results API")
 
 # Include Objectives Router
-app.include_router(objectives.router, tags=["Objectives"])
+app.include_router(objectives.router, prefix="/objectives", tags=["Objectives"])
 
 # Include Key Results (KRs) Router
-app.include_router(krs.router, tags=["Key Results (KRs)"]) # Main KR routes
+app.include_router(krs.router, prefix="/krs", tags=["Key Results (KRs)"]) # Main KR routes
 
 # Include KR Description Management Router (also uses /krs prefix but for specific description endpoint)
-app.include_router(kr_description_router.router, tags=["Key Results (KRs) - Description Management"])
+app.include_router(kr_description_router.router, prefix="/krs", tags=["Key Results (KRs) - Description Management"])
 
 # Include Activities Router
-app.include_router(activities.router, tags=["Activities"])
+app.include_router(activities.router, prefix="/activities", tags=["Activities"])
 
 @app.get("/")
 async def root():
