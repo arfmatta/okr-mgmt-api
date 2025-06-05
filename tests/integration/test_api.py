@@ -98,8 +98,8 @@ class TestAPIIntegration(unittest.TestCase):
             kr_number=1, # Test KR number
             title="Integration Test KR",
             description="This KR is created by an integration test.", # This will be quoted by KRService
-            meta_prevista=100.0,
-            meta_realizada=10.0, # Example value
+            meta_prevista=100,
+            meta_realizada=10, # Example value
             responsaveis=["Integration Tester"],
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"

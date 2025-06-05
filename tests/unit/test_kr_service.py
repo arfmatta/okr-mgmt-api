@@ -66,7 +66,7 @@ class TestKRService(unittest.TestCase):
             kr_number=1,
             title="New KR Title",
             description="KR details here",
-            meta_prevista=100.0,
+            meta_prevista=100,
             responsaveis=["User One", "User Two"],
             team_label="TeamX",
             product_label="ProductY"
@@ -82,8 +82,8 @@ class TestKRService(unittest.TestCase):
             kr_number=1,
             title="New KR Title",
             description="KR details here",
-            meta_prevista=100.0,
-            meta_realizada=0.0,
+            meta_prevista=100,
+            meta_realizada=0,
             responsaveis=["User One", "User Two"],
             team_label="TeamX",
             product_label="ProductY"
@@ -152,7 +152,7 @@ class TestKRService(unittest.TestCase):
             kr_number=2,
             title="Fallback KR",
             description="d",
-            meta_prevista=1.0,
+            meta_prevista=1,
             responsaveis=[],
             team_label="TeamX",
             product_label="ProductY"
@@ -194,8 +194,8 @@ class TestKRService(unittest.TestCase):
         NL = '\n'
         kr_iid = 123
         original_description_text = "Original detailed description."
-        original_meta_prevista = 50.0
-        original_meta_realizada = 10.0
+        original_meta_prevista = 50
+        original_meta_realizada = 10
         original_responsaveis = ["User Alpha", "User Beta"]
         activities_table_content = (
             "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |\n"
@@ -224,8 +224,8 @@ class TestKRService(unittest.TestCase):
 
         update_payload = KRUpdateRequest(
             description="Updated detailed description.",
-            meta_prevista=75.0,
-            meta_realizada=25.0,
+            meta_prevista=75,
+            meta_realizada=25,
             responsaveis=["User Gamma", "User Delta"]
         )
 
@@ -255,8 +255,8 @@ class TestKRService(unittest.TestCase):
         NL = '\n'
         kr_iid = 124
         original_description_text = "Another KR description."
-        original_meta_prevista = 90.0
-        original_meta_realizada = 40.0
+        original_meta_prevista = 90
+        original_meta_realizada = 40
         original_responsaveis = ["Team Lead"]
         activities_table_content = (
             "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |\n"
@@ -278,7 +278,7 @@ class TestKRService(unittest.TestCase):
         self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
         self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
 
-        update_payload = KRUpdateRequest(meta_realizada=55.5) # Only updating this
+        update_payload = KRUpdateRequest(meta_realizada=55) # Only updating this
 
         response = self.kr_service.update_kr(kr_iid, update_payload)
         self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
@@ -314,8 +314,8 @@ class TestKRService(unittest.TestCase):
         NL = '\n'
         kr_iid = 125
         original_description_text = "KR with content."
-        original_meta_prevista = 100.0
-        original_meta_realizada = 50.0
+        original_meta_prevista = 100
+        original_meta_realizada = 50
         original_responsaveis = ["Initial Person"]
         activities_table_content = (
             "| Projetos/Ações/Atividades | Partes interessadas | Prazo Previsto | Prazo Realizado | % Previsto | % Realizado |\n"
