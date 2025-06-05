@@ -40,4 +40,4 @@ async def update_kr_description(
         # if isinstance(e, GitlabGetError):
         #     raise HTTPException(status_code=404, detail=f"KR with IID {kr_iid} not found for update.")
         raise HTTPException(status_code=500, detail=f"Failed to update KR description: {str(e)}")
-EOF
+

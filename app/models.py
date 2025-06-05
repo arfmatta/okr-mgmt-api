@@ -58,5 +58,3 @@ class GitlabConfig(BaseModel): # Not used by the app currently, but part of orig
     project_id: str
     objective_labels: List[str] # Names of labels
     kr_labels: List[str]        # Names of labels
-
-EOF

@@ -1,11 +1,12 @@
 import gitlab
 from gitlab.v4.objects import ProjectIssue, ProjectIssueLink, Project
 from app.config import settings
+from typing import List
 
 class GitlabService:
     def __init__(self):
         try:
-            self.gl = gitlab.Gitlab(settings.gitlab_api_url, private_token=settings.gitlab_access_token)
+            self.gl = gitlab.Gitlab(settings.gitlab_api_url, private_token=settings.gitlab_access_token, ssl_verify=False)
             self.gl.auth()
             # print("Successfully authenticated with GitLab.") # Reduced verbosity for non-interactive use
         except gitlab.exceptions.GitlabAuthenticationError as e:
@@ -29,7 +30,7 @@ class GitlabService:
                 raise
         return self._project
 
-    def create_issue(self, title: str, description: str, labels: list[str] = None) -> ProjectIssue:
+    def create_issue(self, title: str, description: str, labels: List[str] = None) -> ProjectIssue:
         project = self.get_project()
         if labels is None:
             labels = []
@@ -62,7 +63,7 @@ class GitlabService:
             # print(f"An unexpected error occurred while getting issue IID {issue_iid}: {e}")
             raise
 
-    def update_issue(self, issue_iid: int, title: str = None, description: str = None, labels: list[str] = None) -> ProjectIssue:
+    def update_issue(self, issue_iid: int, title: str = None, description: str = None, labels: List[str] = None) -> ProjectIssue:
         project = self.get_project()
         try:
             issue = project.issues.get(issue_iid)
@@ -118,7 +119,7 @@ class GitlabService:
             # print(f"An unexpected error occurred while linking issues {source_issue_iid} and {target_issue_iid}: {e}")
             raise
 
-    def list_issues(self, labels: list[str] = None):
+    def list_issues(self, labels: List[str] = None):
         project = self.get_project()
         try:
             params = {'all': True}

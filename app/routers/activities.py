@@ -16,7 +16,7 @@ router = APIRouter(
 @router.post("/kr/{kr_iid}", response_model=DescriptionResponse, status_code=200) # Changed response_model and status_code
 async def add_activities_to_key_result_description( # Renamed function for clarity
     kr_iid: int = Path(..., title="The IID of the Key Result to add activities to"),
-    activity_data: ActivityCreateRequest,
+    activity_data: ActivityCreateRequest = Depends(ActivityCreateRequest),
     service: ActivityService = Depends(get_current_activity_service)
 ):
     # Adds one or more activities to a specific Key Result's (KR) description.
@@ -51,4 +51,4 @@ async def add_activities_to_key_result_description( # Renamed function for clari
 #         raise HTTPException(status_code=404, detail=str(ve))
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Failed to retrieve activities for KR {kr_iid}: {str(e)}")
-EOF
+
