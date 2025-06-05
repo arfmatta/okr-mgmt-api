@@ -207,8 +207,12 @@ class TestKRService(unittest.TestCase):
         mock_current_issue.title = "OBJ1 - KR1: Test KR"
         mock_current_issue.web_url = f"https://fakegitlab.com/fakeproject/issues/{kr_iid}"
         # Construct original description using the service's formatting logic for consistency
+        # Primeiro, faça a substituição
+        formatted_description = original_description_text.replace('\n', '\n> ')
+        
+        # Depois use o resultado na f-string
         mock_current_issue.description = (
-            f"### Descrição\n\n> {original_description_text.replace('\n', '\n> ')}\n\n"
+            f"### Descrição\n\n> {formatted_description}\n\n"
             f"**Meta prevista**: {original_meta_prevista}%  \n"
             f"**Meta realizada**: {original_meta_realizada}%  \n"
             f"**Responsável(eis)**: {', '.join(original_responsaveis)}  \n\n"
@@ -217,10 +221,6 @@ class TestKRService(unittest.TestCase):
 
         self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
 
-        # Mock the return value of update_issue to be the same issue object,
-        # but its description will be checked via call_args
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
-
         update_payload = KRUpdateRequest(
             description="Updated detailed description.",
             meta_prevista=75.0,
@@ -228,27 +228,39 @@ class TestKRService(unittest.TestCase):
             responsaveis=["User Gamma", "User Delta"]
         )
 
-        response = self.kr_service.update_kr(kr_iid, update_payload)
-
-        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
-
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
-        self.assertEqual(kwargs['issue_iid'], kr_iid)
-
+        # Prepare expected updated description
+        formatted_description = update_payload.description.replace('\n', '\n> ')
         expected_updated_description = (
-            f"### Descrição\n\n> {update_payload.description.replace('\n', '\n> ')}\n\n"
+            f"### Descrição\n\n> {formatted_description}\n\n"
             f"**Meta prevista**: {update_payload.meta_prevista}%  \n"
             f"**Meta realizada**: {update_payload.meta_realizada}%  \n"
             f"**Responsável(eis)**: {', '.join(update_payload.responsaveis)}  \n\n"
             f"{activities_table_content}"
         )
-        # Normalize newlines for comparison if needed, though direct string compare should work if consistent
+
+        # Crie um novo mock para simular o retorno atualizado
+        mock_updated_issue = MagicMock(spec=ProjectIssue)
+        mock_updated_issue.iid = kr_iid
+        mock_updated_issue.title = mock_current_issue.title
+        mock_updated_issue.web_url = mock_current_issue.web_url
+        mock_updated_issue.description = expected_updated_description
+
+        # Mock o retorno de update_issue para o mock_updated_issue
+        self.mock_gitlab_service_patched.update_issue.return_value = mock_updated_issue
+
+        # Chame o método do serviço APENAS UMA VEZ
+        response = self.kr_service.update_kr(kr_iid, update_payload)
+
+        # Agora as asserções devem passar
+        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
+
+        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        self.assertEqual(kwargs['issue_iid'], kr_iid)
         self.assertEqual(kwargs['description'].replace('\r\n', '\n'), expected_updated_description.replace('\r\n', '\n'))
 
         self.assertIsInstance(response, KRResponse)
         self.assertEqual(response.id, kr_iid)
-        # The title and web_url are from mock_current_issue, description from update_issue call
-        self.assertEqual(response.description, kwargs['description'])
+        self.assertEqual(response.description, expected_updated_description)
 
     def test_update_kr_partial_meta_realizada_success(self):
         kr_iid = 124
@@ -274,16 +286,11 @@ class TestKRService(unittest.TestCase):
         )
 
         self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
+        # Remova esta linha: self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
 
         update_payload = KRUpdateRequest(meta_realizada=55.5) # Only updating this
 
-        response = self.kr_service.update_kr(kr_iid, update_payload)
-        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
-
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
-        self.assertEqual(kwargs['issue_iid'], kr_iid)
-
+        # Prepare expected updated description
         expected_updated_description = (
             f"### Descrição\n\n> {original_description_text}\n\n" # Description preserved
             f"**Meta prevista**: {original_meta_prevista}%  \n" # Preserved
@@ -291,8 +298,25 @@ class TestKRService(unittest.TestCase):
             f"**Responsável(eis)**: {', '.join(original_responsaveis)}  \n\n" # Preserved
             f"{activities_table_content}" # Preserved
         )
+
+        # Crie um novo mock para simular o retorno atualizado
+        mock_updated_issue = MagicMock(spec=ProjectIssue)
+        mock_updated_issue.iid = kr_iid
+        mock_updated_issue.title = mock_current_issue.title
+        mock_updated_issue.web_url = mock_current_issue.web_url
+        mock_updated_issue.description = expected_updated_description
+
+        # Mock o retorno de update_issue para o mock_updated_issue
+        self.mock_gitlab_service_patched.update_issue.return_value = mock_updated_issue
+
+        response = self.kr_service.update_kr(kr_iid, update_payload)
+        self.mock_gitlab_service_patched.get_issue.assert_called_once_with(kr_iid)
+
+        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        self.assertEqual(kwargs['issue_iid'], kr_iid)
+
         self.assertEqual(kwargs['description'].replace('\r\n', '\n'), expected_updated_description.replace('\r\n', '\n'))
-        self.assertEqual(response.description, kwargs['description'])
+        self.assertEqual(response.description, kwargs['description']) # Esta asserção agora deve passar
 
     def test_update_kr_not_found(self):
         kr_iid = 404
@@ -332,13 +356,11 @@ class TestKRService(unittest.TestCase):
         )
 
         self.mock_gitlab_service_patched.get_issue.return_value = mock_current_issue
-        self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
+        # Remova esta linha: self.mock_gitlab_service_patched.update_issue.return_value = mock_current_issue
 
         update_payload = KRUpdateRequest(description="", responsaveis=[])
 
-        response = self.kr_service.update_kr(kr_iid, update_payload)
-
-        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
+        # Prepare expected updated description
         expected_updated_description = (
             f"### Descrição\n\n> (Descrição não fornecida)\n\n" # Updated description
             f"**Meta prevista**: {original_meta_prevista}%  \n"   # Preserved
@@ -346,8 +368,23 @@ class TestKRService(unittest.TestCase):
             f"**Responsável(eis)**: N/A  \n\n"                   # Updated responsaveis
             f"{activities_table_content}"                           # Preserved
         )
+
+        # Crie um novo mock para simular o retorno atualizado
+        mock_updated_issue = MagicMock(spec=ProjectIssue)
+        mock_updated_issue.iid = kr_iid
+        mock_updated_issue.title = mock_current_issue.title
+        mock_updated_issue.web_url = mock_current_issue.web_url
+        mock_updated_issue.description = expected_updated_description
+
+        # Mock o retorno de update_issue para o mock_updated_issue
+        self.mock_gitlab_service_patched.update_issue.return_value = mock_updated_issue
+
+
+        response = self.kr_service.update_kr(kr_iid, update_payload)
+
+        args, kwargs = self.mock_gitlab_service_patched.update_issue.call_args
         self.assertEqual(kwargs['description'].replace('\r\n', '\n'), expected_updated_description.replace('\r\n', '\n'))
-        self.assertEqual(response.description, kwargs['description'])
+        self.assertEqual(response.description, kwargs['description']) # Esta asserção agora deve passar
 
     # Remember to reset mocks for each test if not done in setUp for every call
     # The current setUp does reset_mock on the main instance.
