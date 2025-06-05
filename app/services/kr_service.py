@@ -130,12 +130,12 @@ class KRService:
 
         # 2. Meta Prevista
         meta_prevista_match = re.search(r"\*\*Meta prevista\*\*: ([\d\.]+)\s*%", current_description)
-        current_meta_prevista = float(meta_prevista_match.group(1)) if meta_prevista_match else 0.0
+        current_meta_prevista = int(float(meta_prevista_match.group(1))) if meta_prevista_match else 0
         final_meta_prevista = kr_data.meta_prevista if kr_data.meta_prevista is not None else current_meta_prevista
 
         # 3. Meta Realizada
         meta_realizada_match = re.search(r"\*\*Meta realizada\*\*: ([\d\.]+)\s*%", current_description)
-        current_meta_realizada = float(meta_realizada_match.group(1)) if meta_realizada_match else 0.0
+        current_meta_realizada = int(float(meta_realizada_match.group(1))) if meta_realizada_match else 0
         final_meta_realizada = kr_data.meta_realizada if kr_data.meta_realizada is not None else current_meta_realizada
 
         # 4. Responsáveis

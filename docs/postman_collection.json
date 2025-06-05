@@ -90,7 +90,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100.0,\n    \"meta_realizada\": 0.0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"],\n    \"team_label\": \"EquipeKR\",\n    \"product_label\": \"ProdutoKR\"\n}"
+                    "raw": "{\n    \"objective_iid\": {{objective_iid_example}},\n    \"kr_number\": 1,\n    \"title\": \"Aumentar Engajamento do Usuário\",\n    \"description\": \"Aumentar o MAU em 20% e o tempo médio de sessão em 15%.\",\n    \"meta_prevista\": 100,\n    \"meta_realizada\": 0,\n    \"responsaveis\": [\"Usuário Alpha\", \"Time Beta\"],\n    \"team_label\": \"EquipeKR\",\n    \"product_label\": \"ProdutoKR\"\n}"
                 },
                 "url": { "raw": "{{base_url}}/krs/", "host": ["{{base_url}}"], "path": ["krs", ""] }
             }, "response": []
@@ -138,7 +138,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"description\": \"Esta é uma descrição atualizada para o Key Result. Pode incluir **Markdown** e múltiplas linhas.\",\n    \"meta_prevista\": 95.0,\n    \"meta_realizada\": 35.5,\n    \"responsaveis\": [\"Membro da Equipe A\", \"Membro da Equipe B\", \"Líder de Projeto C\"]\n}"
+                    "raw": "{\n    \"description\": \"Esta é uma descrição atualizada para o Key Result. Pode incluir **Markdown** e múltiplas linhas.\",\n    \"meta_prevista\": 95,\n    \"meta_realizada\": 35,\n    \"responsaveis\": [\"Membro da Equipe A\", \"Membro da Equipe B\", \"Líder de Projeto C\"]\n}"
                 },
                 "url": {
                     "raw": "{{base_url}}/krs/{{kr_iid_example}}",
@@ -163,7 +163,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"activities\": [\n        {\n            \"project_action_activity\": \"Desenvolver tutorial interativo\",\n            \"stakeholders\": \"Equipe de Produto, Equipe de UX\",\n            \"deadline_planned\": \"Q3/2024\",\n            \"deadline_achieved\": null,\n            \"progress_planned_percent\": 100.0,\n            \"progress_achieved_percent\": 25.0\n        }\n    ]\n}"
+                    "raw": "{\n    \"activities\": [\n        {\n            \"project_action_activity\": \"Desenvolver tutorial interativo\",\n            \"stakeholders\": \"Equipe de Produto, Equipe de UX\",\n            \"deadline_planned\": \"Q3/2024\",\n            \"deadline_achieved\": null,\n            \"progress_planned_percent\": 100,\n            \"progress_achieved_percent\": 25\n        }\n    ]\n}"
                 },
                 "url": { "raw": "{{base_url}}/activities/kr/{{kr_iid_example}}", "host": ["{{base_url}}"], "path": ["activities", "kr", "{{kr_iid_example}}"] }
             }, "response": []

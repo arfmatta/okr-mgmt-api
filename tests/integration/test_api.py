@@ -98,8 +98,8 @@ class TestAPIIntegration(unittest.TestCase):
             kr_number=1, # Test KR number
             title="Integration Test KR",
             description="This KR is created by an integration test.", # This will be quoted by KRService
-            meta_prevista=100.0,
-            meta_realizada=10.0, # Example value
+            meta_prevista=100,
+            meta_realizada=10, # Example value
             responsaveis=["Integration Tester"],
             team_label="IntegrationTeam",
             product_label="IntegrationProduct"
@@ -140,8 +140,8 @@ class TestAPIIntegration(unittest.TestCase):
             stakeholders="Dev Team",
             deadline_planned="Q4/2024",
             deadline_achieved=None, # Test None case for deadline_achieved
-            progress_planned_percent=100.0,
-            progress_achieved_percent=0.0
+            progress_planned_percent=100, # Changed from 100.0
+            progress_achieved_percent=0   # Changed from 0.0
         )
         activities_payload = ActivityCreateRequest(activities=[activity_detail])
 
