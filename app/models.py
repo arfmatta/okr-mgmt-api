@@ -34,6 +34,19 @@ class KRResponse(BaseModel):
     web_url: HttpUrl
     objective_iid: int # IID of the linked objective
 
+class KRDetailResponse(BaseModel):
+    id: int # GitLab issue IID
+    web_url: HttpUrl
+    objective_iid: int # IID of the parent objective issue
+    kr_number: int
+    title: str
+    description: str # Detailed description of the KR itself
+    meta_prevista: int = Field(..., ge=0, le=100) # Percentage
+    meta_realizada: int = Field(default=0, ge=0, le=100) # Percentage
+    team_label: str
+    product_label: str
+    responsaveis: List[str]
+
 class KRDescriptionUpdateRequest(BaseModel):
     description: str
 
